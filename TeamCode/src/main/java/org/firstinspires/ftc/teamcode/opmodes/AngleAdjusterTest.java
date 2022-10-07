@@ -5,8 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
-import org.firstinspires.ftc.teamcode.lib.util.AngleAdjuster;
-import org.firstinspires.ftc.teamcode.lib.util.PositionableMotor;
+import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 
 @TeleOp
 public class AngleAdjusterTest extends LinearOpMode {
@@ -28,7 +27,7 @@ public class AngleAdjusterTest extends LinearOpMode {
         this.loadHardware();
 
         // create motor
-        AngleAdjuster motor = new AngleAdjuster(this.angleMotor, 24.0, 751.8, this.limitSensor);
+        AngleAdjuster motor = new AngleAdjuster(this.angleMotor, 24.0, 384.5, this.limitSensor);
 
         telemetry.addLine("Done.");
         telemetry.update();
