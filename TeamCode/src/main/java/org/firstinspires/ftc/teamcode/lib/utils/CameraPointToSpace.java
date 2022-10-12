@@ -41,8 +41,6 @@ public class CameraPointToSpace {
 	 * @return the point in world space
 	 */
 	public Vec3F cameraToWorld(Vec3F point, Vec3F cameraPosition, Vec3F cameraRotation) {
-
-
 		return new Vec3F();
 	}
 

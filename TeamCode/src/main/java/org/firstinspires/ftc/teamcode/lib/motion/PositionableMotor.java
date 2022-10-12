@@ -24,6 +24,9 @@ public class PositionableMotor {
 
 		// reset encoders
 		this.resetEncoders();
+
+		// enable
+		this.enable();
 	}
 
 	/**
