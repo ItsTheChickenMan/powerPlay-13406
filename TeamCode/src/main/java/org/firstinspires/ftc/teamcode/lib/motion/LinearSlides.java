@@ -3,32 +3,43 @@ package org.firstinspires.ftc.teamcode.lib.motion;
 public class LinearSlides {
 	private PositionableMotor driveMotor;
 
-	private double rotationsUntilFull;
-	private double reach;
+	private double spoolRadius;
+	private double spoolCircumference;
+	private double retractedLength;
+	private double maxLength;
 
-	public LinearSlides(PositionableMotor driveMotor, double reach, double rotationsUntilFull) {
+	public LinearSlides(PositionableMotor driveMotor, double retractedLength, double maxLength, double spoolRadius) {
 		this.driveMotor = driveMotor;
-		this.reach = reach;
-		this.rotationsUntilFull = rotationsUntilFull;
+		this.retractedLength = retractedLength;
+		this.maxLength = maxLength;
+		this.spoolRadius = spoolRadius;
+		this.spoolCircumference = 2*Math.PI*this.spoolRadius;
 	}
 
 	/**
-	 * @brief extend to a certain number of inches
-	 *
-	 * @FIXME tends to be off by a small amount (0.25-0.5 inches)
+	 * @brief Returns the total amount that this slide is extended, even through encoder resets
+	 */
+	public double getExtension(){
+		return this.spoolCircumference * this.driveMotor.getRotations();
+	}
+
+	/**
+	 * @brief extend to a certain number of inches from the point of mounting (it accounts for the retracted length)
 	 *
 	 * @param inches inches to extend to
 	 * @param velocity inches / second
 	 */
 	public void extendTo(double inches, double velocity) {
-		double percent = inches / reach;
+		// validate
+		if(inches > this.maxLength || inches < this.retractedLength){
+			return;
+		}
 
-		double rotations = percent * rotationsUntilFull;
+		// calculate rotations
+		double rotations = inches / this.spoolCircumference;
+		double rotationsVelocity = velocity / this.spoolCircumference;
 
-		double percentVelocity = velocity / reach;
-
-		double rotationsVelocity = percentVelocity * rotationsUntilFull;
-
+		// drive
 		this.driveMotor.rotate(rotations, rotationsVelocity);
 	}
 }

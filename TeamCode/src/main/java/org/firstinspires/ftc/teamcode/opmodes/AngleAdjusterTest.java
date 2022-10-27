@@ -70,7 +70,7 @@ public class AngleAdjusterTest extends LinearOpMode {
         waitForStart();
 
         // start with a simple 45 degree test
-        motor.rotateAngle(values[0], values[1]);
+        motor.rotateAngleDegrees(values[0], values[1]);
 
         // run
         while(opModeIsActive()){
