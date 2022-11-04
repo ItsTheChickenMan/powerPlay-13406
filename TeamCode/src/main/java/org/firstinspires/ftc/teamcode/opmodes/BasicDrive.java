@@ -6,7 +6,9 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.drive.MecanumDrive;
+import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 
 /**
  * @brief Basic opmode for driving around in normal, bot relative mecanum drive
@@ -57,7 +59,12 @@ public class BasicDrive extends LinearOpMode {
         this.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // initialize our drive train
-        MecanumDrive driveTrain = new MecanumDrive(this.frontLeft, this.frontRight, this.backLeft, this.backRight);
+        MecanumDrive driveTrain = new MecanumDrive(
+                new PositionableMotor(this.frontLeft, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO),
+                new PositionableMotor(this.frontRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO),
+                new PositionableMotor(this.backLeft, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO),
+                new PositionableMotor(this.backRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO)
+        );
 
         // we log this so that we know initialization is done
         telemetry.addLine("Initializing done.");

@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 
@@ -15,14 +16,14 @@ public class LinearSlideTest extends LinearOpMode {
 
 		drive.setDirection(DcMotorSimple.Direction.REVERSE);
 
-		LinearSlides slides = new LinearSlides(new PositionableMotor(drive, 1, 384.5), 38.4, 976.0/112.0);
+		LinearSlides slides = new LinearSlides(new PositionableMotor(drive, 1, 384.5), AbeConstants.SLIDE_BASE_LENGTH_INCHES, AbeConstants.SLIDE_BASE_LENGTH_INCHES + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_RADIUS_INCHES);
 
 		telemetry.addData("Status", "Initialized");
 		telemetry.update();
 
 		waitForStart();
 
-		slides.extendTo(16, 32);
+		slides.extend(16, 32);
 
 		while(opModeIsActive()){
 			telemetry.addData("Status", "Running");

@@ -3,28 +3,47 @@ package org.firstinspires.ftc.teamcode.lib.drive;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
+import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
+
 public class MecanumDrive {
     // the motors for this drive train.
-    public DcMotorEx frontLeft;
-    public DcMotorEx frontRight;
-    public DcMotorEx backLeft;
-    public DcMotorEx backRight;
+    public PositionableMotor frontLeft;
+    public PositionableMotor frontRight;
+    public PositionableMotor backLeft;
+    public PositionableMotor backRight;
 
     /**
-     * @brief Construct a mecanum drive from four initialized motors
+     * @brief Construct a mecanum drive from four pre-constructed positionable motors
      *
      * @note THIS DOES NOT SET DIRECTIONS FOR YOU!  Set them yourself.
      *
-     * @param frontLeft front left motor
-     * @param frontRight front right motor
+     * @param frontLeft
+     * @param frontRight
      * @param backLeft
      * @param backRight
      */
-    public MecanumDrive(DcMotorEx frontLeft, DcMotorEx frontRight, DcMotorEx backLeft, DcMotorEx backRight) {
+    public MecanumDrive(PositionableMotor frontLeft, PositionableMotor frontRight, PositionableMotor backLeft, PositionableMotor backRight) {
         this.frontLeft = frontLeft;
         this.frontRight = frontRight;
         this.backLeft = backLeft;
         this.backRight = backRight;
+    }
+
+    /**
+     * @brief Construct a mecanum drive from initialized motors assuming that all of them have the same gear and tick ratios
+     *
+     * @param frontLeft
+     * @param frontRight
+     * @param backLeft
+     * @param backRight
+     * @param gearRatio motor shaft rotations per driven gear rotations
+     * @param tickRatio ticks per rotation
+     */
+    public MecanumDrive(DcMotorEx frontLeft, DcMotorEx frontRight, DcMotorEx backLeft, DcMotorEx backRight, double gearRatio, double tickRatio){
+        this.frontLeft = new PositionableMotor(frontLeft, gearRatio, tickRatio);
+        this.frontRight = new PositionableMotor(frontRight, gearRatio, tickRatio);
+        this.backLeft = new PositionableMotor(backLeft, gearRatio, tickRatio);
+        this.backRight = new PositionableMotor(backRight, gearRatio, tickRatio);
     }
 
     /**
@@ -82,6 +101,22 @@ public class MecanumDrive {
         double bl = forward - strafe + rot;
         double br = forward + strafe - rot;
 
+        // normalize powers
+        /*double largest = Math.max(Math.max(Math.max(fl, fr), bl), br);
+
+        // prevent divide by 0
+        if(largest != 0) {
+            fl /= largest;
+            fr /= largest;
+            bl /= largest;
+            br /= largest;
+        }*/
+
+        fl *= speed;
+        fr *= speed;
+        bl *= speed;
+        br *= speed;
+
         // down here, we simply assign the powers to the motors
         // this is down through the setPower method, which takes a value from -1 to 1 (and clamps it automatically for us, how sweet)
         // however, setting each power individually is annoying, so we use a method that we wrote ourselves to do it a little quicker:
@@ -101,7 +136,7 @@ public class MecanumDrive {
      * @param strafe
      * @param rot
      */
-    public void driveFieldOriented(double forward, double strafe, double rot) {
+    public void driveFieldOriented(double forward, double strafe, double rot, double orientation, double speed) {
         // FIXME: implement
     }
 }

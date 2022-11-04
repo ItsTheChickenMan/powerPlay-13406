@@ -43,7 +43,7 @@ public class PositionableMotor {
 	 * @brief Reset the motor encoders
 	 */
 	public void resetEncoders(){
-		this.tickOffset += this.motor.getCurrentPosition();
+		this.tickOffset += this.getRawPosition();
 		this.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 	}
 
@@ -63,13 +63,31 @@ public class PositionableMotor {
 	}
 
 	/**
+	 * @brief Wrapper for setPower of DcMotorEx
+	 */
+	public void setPower(double power){
+		this.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+		this.motor.setPower(power);
+	}
+
+	/**
+	 * @brief returns the current position in ticks of the drive shaft
+	 *
+	 * @return current position in ticks as an int
+	 */
+	public int getRawPosition(){
+		return this.motor.getCurrentPosition();
+	}
+
+	/**
 	 * @brief gets the cumulative number of rotations of the driven gear (even if encoders are reset) from start
 	 *
 	 * @return number of rotations
 	 */
 	public double getRotations() {
 		// get current rotations from ticks + gear ratio
-		int position = this.motor.getCurrentPosition();
+		int position = this.getRawPosition();
 		double rotations = (double)(position + this.tickOffset) / this.tickRatio;
 
 		double drivenRotations = rotations / this.gearRatio;
@@ -98,11 +116,42 @@ public class PositionableMotor {
 	}
 
 	/**
-	 * @brief rotate the driven gear a certain amount of rotations
+	 * @brief Get the current velocity in ticks of the drive shaft
 	 *
-	 * @param rotations desired amount of rotations
-	 * @param velocity in rotations
+	 * @return the velocity in raw ticks
 	 */
+	public double getRawVelocity(){
+		return this.motor.getVelocity();
+	}
+
+	/**
+	 * @brief Get driven velocity in terms of rotations / second
+	 *
+	 * @return driven velocity in terms of rotations / second
+	 */
+	public double getVelocityRotations(){
+		double velocity = this.getRawVelocity();
+		double rotations = velocity / this.tickRatio;
+
+		double drivenRotations = rotations / this.gearRatio;
+
+		return drivenRotations;
+	}
+
+	public double getVelocityRadians(){
+		return this.getVelocityRotations() * 2 * Math.PI;
+	}
+
+	public double getVelocityDegrees(){
+		return this.getVelocityRotations() * 360.0;
+	}
+
+		/**
+		 * @brief rotate the driven gear a certain amount of rotations
+		 *
+		 * @param rotations desired amount of rotations
+		 * @param velocity in rotations
+		 */
 	public void rotate(double rotations, double velocity){
 		if(this.disabled) return;
 
@@ -147,6 +196,27 @@ public class PositionableMotor {
 		double velocityRotations = velocity / (2*Math.PI);
 
 		this.rotate(rotations, velocityRotations);
+	}
+
+	public void rotateTo(double rotations, double velocity){
+		// just adjust rotations
+		rotations -= this.getRotations();
+
+		this.rotate(rotations, velocity);
+	}
+
+	public void rotateToDegrees(double degrees, double velocity){
+		// just adjust degrees
+		degrees -= this.getAngleDegrees();
+
+		this.rotateAngleDegrees(degrees, velocity);
+	}
+
+	public void rotateToRadians(double radians, double velocity){
+		// just adjust radians
+		radians -= this.getAngleRadians();
+
+		this.rotateAngleRadians(radians, velocity);
 	}
 
 	/**

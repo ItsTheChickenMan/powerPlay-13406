@@ -21,7 +21,7 @@ public class PositionableServoTest extends LinearOpMode {
 
 		waitForStart();
 
-		this.servo.rotateToDegrees(0.0);
+		this.servo.rotateToDegrees(-150);
 
 		while(opModeIsActive()){
 

@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
+import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.drive.MecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
@@ -63,7 +64,7 @@ public class BasicDriveSlides extends LinearOpMode {
 		this.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 		// initialize our drive train
-		MecanumDrive driveTrain = new MecanumDrive(this.frontLeft, this.frontRight, this.backLeft, this.backRight);
+		MecanumDrive driveTrain = new MecanumDrive(this.frontLeft, this.frontRight, this.backLeft, this.backRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO);
 
 		// create angle adjuster
 		AngleAdjuster angleAdjuster = new AngleAdjuster(this.angleMotor, 24.0, 384.5, this.limitSensor);
@@ -73,7 +74,7 @@ public class BasicDriveSlides extends LinearOpMode {
 		this.slidesMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 		// create slides
-		LinearSlides slides = new LinearSlides(new PositionableMotor(this.slidesMotor, 1, 384.5), 38.4, 976.0/112.0);
+		LinearSlides slides = new LinearSlides(new PositionableMotor(this.slidesMotor, 1, 384.5), 18, 18 + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_RADIUS_INCHES);
 
 		// we log this so that we know initialization is done
 		telemetry.addLine("Initializing done.");

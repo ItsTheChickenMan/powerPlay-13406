@@ -32,6 +32,14 @@ public class PositionableServo {
 		this.maxRange = maxRange;
 	}
 
+	public double getMaxRangeRadians(){
+		return this.maxRange;
+	}
+
+	public double getMaxRangeDegrees(){
+		return Math.toDegrees(this.maxRange);
+	}
+
 	/**
 	 * @brief Rotate to a certain angle, in radians (between -range/2 and range/2)
 	 *

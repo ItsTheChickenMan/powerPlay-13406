@@ -19,7 +19,11 @@ public class WristTest extends LinearOpMode {
 	TouchSensor limitSensor;
 
 	public void loadHardware(){
-		this.wrist = new PositionableServo(hardwareMap.get(Servo.class, "wristServo"), Math.toRadians(200));
+		Servo servo = hardwareMap.get(Servo.class, "wristServo");
+
+		//servo.setDirection(Servo.Direction.REVERSE);
+
+		this.wrist = new PositionableServo(servo, Math.toRadians(360));
 		this.limitSensor = hardwareMap.get(TouchSensor.class, "limitSwitch");
 		this.angleAdjuster = new AngleAdjuster(hardwareMap.get(DcMotorEx.class, "angleMotor"), 24.0, 384.5, this.limitSensor);
 	}
@@ -42,7 +46,10 @@ public class WristTest extends LinearOpMode {
 
 			this.angleAdjuster.rotateSpeedDegrees(gamepad1.left_stick_y * 30);
 
-			this.wrist.rotateToDegrees(-this.angleAdjuster.getAngleDegrees());
+			telemetry.addData("angle", this.angleAdjuster.getAngleDegrees());
+			telemetry.update();
+
+			this.wrist.rotateToDegrees(-wrist.getMaxRangeDegrees()/2. - this.angleAdjuster.getAngleDegrees());
 		}
 	}
 }
