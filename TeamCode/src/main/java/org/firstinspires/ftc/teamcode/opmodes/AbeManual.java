@@ -22,10 +22,10 @@ import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 @TeleOp
 public class AbeManual extends LinearOpMode {
 	// hardware //
-	AbeBot.Hardware hardware;
+	private AbeBot.Hardware hardware;
 
 	// bot //
-	AbeBot abe;
+	private AbeBot abe;
 
 	public void loadHardware(){
 		this.hardware = new AbeBot.Hardware();

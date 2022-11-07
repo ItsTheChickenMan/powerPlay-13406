@@ -47,10 +47,10 @@ public class BasicDrive extends LinearOpMode {
 
         // set motor directions
         // we have to do this because motors generally run clockwise for positive, but if all the motors run clockwise then the left ones go backwards
-        this.frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        this.backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        this.frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        this.backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        this.frontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        this.backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        this.frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        this.backRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // set the motors to stop themselves rather than drift
         this.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

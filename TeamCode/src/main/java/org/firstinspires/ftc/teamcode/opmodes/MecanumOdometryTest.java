@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
@@ -21,6 +22,9 @@ public class MecanumOdometryTest extends LinearOpMode {
 		DcMotorEx backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
 		DcMotorEx backRight = hardwareMap.get(DcMotorEx.class, "backRight");
 		BNO055IMU imu = hardwareMap.get(BNO055IMU.class, "imu");
+
+		frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+		backRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
 		drivePlusOdo = new MecanumDrivePlusOdo(frontLeft, frontRight, backLeft, backRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO, AbeConstants.DRIVE_WHEEL_RADIUS_INCHES, new Imu(imu));
 
@@ -40,7 +44,7 @@ public class MecanumOdometryTest extends LinearOpMode {
 			telemetry.addData("y", this.drivePlusOdo.getY());
 			telemetry.update();
 
-			drivePlusOdo.driveNormal(gamepad1.left_stick_x, -gamepad1.left_stick_y, gamepad1.right_stick_x, 1.3 - gamepad1.left_trigger);
+			drivePlusOdo.driveNormal(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, 1.3 - gamepad1.left_trigger);
 
 			drivePlusOdo.update(delta);
 		}

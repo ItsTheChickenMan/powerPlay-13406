@@ -78,6 +78,12 @@ public class MecanumDrivePlusOdo extends MecanumDrive {
 		double bl = this.backLeft.getVelocityRadians();
 		double br = this.backRight.getVelocityRadians();
 
+
+		fl *= delta;
+		fr *= delta;
+		bl *= delta;
+		br *= delta;
+
 		// FIXME: use actual vectors
 		double x = 0;
 		double y = 0;
@@ -113,7 +119,6 @@ public class MecanumDrivePlusOdo extends MecanumDrive {
 		// rotate (this will create a disparity where the update rate will affect odometry accuracy while rotating)
 		Vec2 velocity = new Vec2(x, y);
 		velocity.rotate(this.imu.getAngleRadians());
-		velocity.mult(delta);
 
 		this.position.add(velocity);
 	}
