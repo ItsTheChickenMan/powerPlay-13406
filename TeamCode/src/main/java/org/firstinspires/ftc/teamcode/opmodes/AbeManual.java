@@ -35,6 +35,11 @@ public class AbeManual extends LinearOpMode {
 		this.hardware.backLeft = hardwareMap.get(DcMotorEx.class, "backLeft");
 		this.hardware.backRight = hardwareMap.get(DcMotorEx.class, "backRight");
 
+		//this.hardware.frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+		this.hardware.frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+		//this.hardware.backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+		this.hardware.backRight.setDirection(DcMotorSimple.Direction.REVERSE);
+
 		this.hardware.elbow = hardwareMap.get(DcMotorEx.class, "angleMotor");
 		this.hardware.slides = hardwareMap.get(DcMotorEx.class, "slidesMotor");
 
@@ -76,8 +81,12 @@ public class AbeManual extends LinearOpMode {
 		// wait for start
 		waitForStart();
 
+		// permanent wrist adjustment
+		this.abe.arm.positionWristDegrees(25);
+
 		// fingers logic
 		boolean lastClamped = false;
+		boolean lastDropped = false;
 
 		// delta calculation
 		ElapsedTime timer = new ElapsedTime();
@@ -93,10 +102,20 @@ public class AbeManual extends LinearOpMode {
 			// arm logic //
 
 			// elbow...
-			this.abe.arm.setElbowSpeedDegrees(gamepad2.left_stick_y * 30);
+			this.abe.arm.setElbowSpeedDegrees(gamepad2.left_stick_y * 50);
 
 			// slides...
-			this.abe.arm.setSlidesSpeed(-gamepad2.right_stick_y * 24);
+			if(Math.abs(gamepad2.right_stick_y) > 0.02) {
+				this.abe.arm.unfreezeSlides();
+				this.abe.arm.setSlidesSpeed(-gamepad2.right_stick_y * 12);
+			} else {
+				telemetry.addLine("Freezing");
+				this.abe.arm.freezeSlides();
+			}
+
+			telemetry.addData("controller", gamepad2.right_stick_y);
+			telemetry.addData("speed", this.abe.arm.slides.getVelocity());
+			telemetry.addData("extension", this.abe.arm.slides.getExtension());
 
 			// fingers...
 			if(gamepad2.a && !lastClamped){
@@ -105,8 +124,15 @@ public class AbeManual extends LinearOpMode {
 
 			lastClamped = gamepad2.a;
 
-			// wrist...
+			/*if(gamepad2.x){
+				this.abe.arm.positionWristDegrees(25);
+			} else {
+				this.abe.arm.positionWristDegrees(0);
+			}*/
 
+			// wrist...
+			telemetry.addData("elbow", this.abe.arm.getElbowAngleDegrees());
+			telemetry.update();
 
 			// arm update
 			this.abe.arm.update();

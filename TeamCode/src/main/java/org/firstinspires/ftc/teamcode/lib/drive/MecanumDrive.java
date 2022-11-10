@@ -96,10 +96,10 @@ public class MecanumDrive {
         // for the bot to rotate, the left motors need to run opposite of the right motors, so we subtract the desired rotation from the left motors while adding it to the right motors
         // the strafing is a little more weird.  Think about it as each wheel diagonal to another wheel forming a pair with that wheel, and then the two pairs of diagonal wheels run opposite of each other.
         // when combined, we get our drive system!
-        double fl = forward + strafe + rot;
-        double fr = forward - strafe - rot;
-        double bl = forward - strafe + rot;
-        double br = forward + strafe - rot;
+        double fl = forward + strafe - rot;
+        double fr = forward - strafe + rot;
+        double bl = forward - strafe - rot;
+        double br = forward + strafe + rot;
 
         // normalize powers
         /*double largest = Math.max(Math.max(Math.max(fl, fr), bl), br);

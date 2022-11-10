@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
  */
 public class Arm {
 	private AngleAdjuster elbow;
-	private LinearSlides slides;
+	public LinearSlides slides;
 
 	private PositionableServo wrist;
 	private PositionableServo fingers;
@@ -66,6 +66,14 @@ public class Arm {
 		this.manualControl = enabled;
 	}
 
+	public double getElbowAngleDegrees(){
+		return this.elbow.getAngleDegrees();
+	}
+
+	public double getElbowAngleRadians(){
+		return this.elbow.getAngleRadians();
+	}
+
 	// MANUAL CONTROL (methods that silently fail if this.manualControl is false) //
 
 	/**
@@ -108,8 +116,8 @@ public class Arm {
 	 *
 	 * @param velocity radians / second
 	 */
-	public void setElbowSpeedRadians(double velocity){
-		if(!this.manualControl) return;
+	public void setElbowSpeedRadians(double velocity) {
+		if (!this.manualControl) return;
 
 		this.elbow.rotateSpeedRadians(velocity);
 	}
@@ -136,6 +144,18 @@ public class Arm {
 		if(!this.manualControl) return;
 
 		this.slides.extend(extension, velocity);
+	}
+
+	public void freezeSlides(){
+		if(!this.manualControl) return;
+
+		this.slides.freeze();
+	}
+
+	public void unfreezeSlides(){
+		if(!this.manualControl) return;
+
+		this.slides.unfreeze();
 	}
 
 	/**
@@ -175,7 +195,7 @@ public class Arm {
 	public void clampFingers(){
 		this.fingersClamped = true;
 
-		this.fingers.rotateToDegrees( -this.fingers.getMaxRangeDegrees() / 2 );
+		this.fingers.rotateToDegrees( AbeConstants.FINGERS_CLOSED_POSITION );
 	}
 
 	/**
@@ -184,7 +204,7 @@ public class Arm {
 	public void unclampFingers(){
 		this.fingersClamped = false;
 
-		this.fingers.rotateToDegrees( this.fingers.getMaxRangeDegrees() / 2 );
+		this.fingers.rotateToDegrees( AbeConstants.FINGERS_OPEN_POSITION );
 	}
 
 	/**
@@ -233,7 +253,7 @@ public class Arm {
 	 * @brief Adjust the wrist's angle for the elbow's angle
 	 */
 	public void updateWrist(){
-		this.wrist.rotateToDegrees( -this.wrist.getMaxRangeDegrees()/2. + this.elbow.getAngleDegrees() + this.wristAngle);
+		this.wrist.rotateToDegrees( -this.wrist.getMaxRangeDegrees()/2. - this.elbow.getAngleDegrees() + this.wristAngle);
 	}
 
 	/**
@@ -245,7 +265,7 @@ public class Arm {
 
 		// check slides
 		// TODO: have this set by programmer
-		this.slides.checkForBadExtension(1.0);
+		//this.slides.checkForBadExtension();
 
 		// update wrist
 		this.updateWrist();

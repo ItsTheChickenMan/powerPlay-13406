@@ -78,7 +78,6 @@ public class MecanumDrivePlusOdo extends MecanumDrive {
 		double bl = this.backLeft.getVelocityRadians();
 		double br = this.backRight.getVelocityRadians();
 
-
 		fl *= delta;
 		fr *= delta;
 		bl *= delta;

@@ -31,6 +31,15 @@ public class PositionableMotor {
 	}
 
 	/**
+	 * @brief set mode mirror
+	 *
+	 * @param mode
+	 */
+	public void setMode(DcMotor.RunMode mode){
+		this.motor.setMode(mode);
+	}
+
+	/**
 	 * @brief abstraction for is busy
 	 *
 	 * @return true if motor is busy

@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.lib.abe;
 import androidx.annotation.NonNull;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
@@ -33,6 +34,16 @@ public class AbeBot {
 		public TouchSensor elbowLimitSensor;
 
 		public BNO055IMU imu;
+
+		public void resetAllMotors(){
+			this.frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+			this.frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+			this.backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+			this.backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+			this.elbow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+			this.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+		}
 
 		public boolean complete(){
 			// NOTE: I hate this method
@@ -72,6 +83,9 @@ public class AbeBot {
 
 		// save hardware configuration
 		this.hardware = hardware;
+
+		// reset motors
+		this.hardware.resetAllMotors();
 
 		// create drive train
 		// TODO: should we be using AbeConstants in here, or should that be left as a choice for the programmer?
