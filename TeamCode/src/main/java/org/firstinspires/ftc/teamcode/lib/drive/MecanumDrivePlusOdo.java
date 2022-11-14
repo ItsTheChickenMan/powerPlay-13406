@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.lib.drive;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.utils.Imu;
 import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
 
@@ -71,12 +72,14 @@ public class MecanumDrivePlusOdo extends MecanumDrive {
 		return this.imu.getAngleRadians();
 	}
 
-	public void update(double delta) {
+	public void update(double delta, Telemetry telemetry) {
 		// calculate velocity vector from encoder velocities and current imu orientation
 		double fl = this.frontLeft.getVelocityRadians();
 		double fr = this.frontRight.getVelocityRadians();
 		double bl = this.backLeft.getVelocityRadians();
 		double br = this.backRight.getVelocityRadians();
+
+		//telemetry.addData("delta", delta);
 
 		fl *= delta;
 		fr *= delta;
@@ -95,6 +98,12 @@ public class MecanumDrivePlusOdo extends MecanumDrive {
 		double backLeftContribution = bl * this.wheelCircumference;
 		double backRightContribution = br * this.wheelCircumference;
 
+		telemetry.addData("frontRightRaw", this.frontRight.getRawVelocity());
+		telemetry.addData("frontRightRotations", this.frontRight.getVelocityRotations());
+		telemetry.addData("velocityRadians", this.frontRight.getVelocityRadians());
+		telemetry.addData("velocityDeltaCorrected", fr);
+		telemetry.addData("frontRightContribution", frontRightContribution);
+
 		// front left
 		x -= frontLeftContribution;
 		y += frontLeftContribution;
@@ -111,13 +120,19 @@ public class MecanumDrivePlusOdo extends MecanumDrive {
 		x -= backRightContribution;
 		y += backRightContribution;
 
+		telemetry.addData("yFull", y);
+
 		// average
 		x /= 4.0;
 		y /= 4.0;
 
+		telemetry.addData("yAvg", y);
+
+		telemetry.update();
+
 		// rotate (this will create a disparity where the update rate will affect odometry accuracy while rotating)
 		Vec2 velocity = new Vec2(x, y);
-		velocity.rotate(this.imu.getAngleRadians());
+		//velocity.rotate(this.imu.getAngleRadians());
 
 		this.position.add(velocity);
 	}

@@ -261,11 +261,11 @@ public class Arm {
 	 */
 	public void update(){
 		// check elbow
-		this.elbow.check();
+		//this.elbow.check();
 
 		// check slides
 		// TODO: have this set by programmer
-		//this.slides.checkForBadExtension();
+		this.slides.checkForBadExtension();
 
 		// update wrist
 		this.updateWrist();

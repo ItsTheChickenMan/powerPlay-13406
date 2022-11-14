@@ -107,13 +107,14 @@ public class AbeManual extends LinearOpMode {
 			// slides...
 			if(Math.abs(gamepad2.right_stick_y) > 0.02) {
 				this.abe.arm.unfreezeSlides();
-				this.abe.arm.setSlidesSpeed(-gamepad2.right_stick_y * 12);
+				this.abe.arm.setSlidesSpeed(-gamepad2.right_stick_y * 24 * (1.2-gamepad2.right_trigger));
 			} else {
 				telemetry.addLine("Freezing");
 				this.abe.arm.freezeSlides();
 			}
 
 			telemetry.addData("controller", gamepad2.right_stick_y);
+			telemetry.addData("desiredVelocity", this.abe.arm.slides.currentDesiredVelocity);
 			telemetry.addData("speed", this.abe.arm.slides.getVelocity());
 			telemetry.addData("extension", this.abe.arm.slides.getExtension());
 

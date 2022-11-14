@@ -36,17 +36,18 @@ public class MecanumOdometryTest extends LinearOpMode {
 		double lastTime = time.seconds();
 
 		while(opModeIsActive()) {
+			/*telemetry.addData("x", this.drivePlusOdo.getX());
+			telemetry.addData("y", this.drivePlusOdo.getY());
+			telemetry.update();*/
+
+
+			drivePlusOdo.driveNormal(-gamepad1.left_stick_y, 0 /*gamepad1.left_stick_x*/, gamepad1.right_stick_x, 1.3 - gamepad1.left_trigger);
+
 			double t = time.seconds();
 			delta = t - lastTime;
 			lastTime = t;
 
-			telemetry.addData("x", this.drivePlusOdo.getX());
-			telemetry.addData("y", this.drivePlusOdo.getY());
-			telemetry.update();
-
-			drivePlusOdo.driveNormal(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, 1.3 - gamepad1.left_trigger);
-
-			drivePlusOdo.update(delta);
+			drivePlusOdo.update(delta, telemetry);
 		}
 	}
 }

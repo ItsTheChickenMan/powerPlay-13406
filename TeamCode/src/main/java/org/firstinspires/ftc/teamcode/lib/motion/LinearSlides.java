@@ -18,7 +18,7 @@ public class LinearSlides {
 	private double frozenRotations;
 
 	// the desired velocity.  not guaranteed to be the actual velocity.  only used to check for over/under extension, which is why it has no getter/setter
-	private double currentDesiredVelocity;
+	public double currentDesiredVelocity;
 
 	/**
 	 * @brief Create a new set of linear slides
@@ -48,7 +48,7 @@ public class LinearSlides {
 
 		this.frozen = true;
 
-		this.driveMotor.rotateTo(this.frozenRotations, 1.0);
+		this.driveMotor.rotateTo(this.frozenRotations, 6.0);
 	}
 
 	/**
@@ -57,8 +57,6 @@ public class LinearSlides {
 	 * @todo PositionableMotor method?
 	 */
 	public void unfreeze(){
-		this.driveMotor.resetEncoders();
-
 		this.frozen = false;
 	}
 
@@ -107,7 +105,7 @@ public class LinearSlides {
 	/**
 	 * @brief Set the speed of the extension (not any particular length)
 	 *
-	 * @deprecated the method is supposed to account for
+	 * @deprecated the method is supposed to account for under/over extension, but it doesn't do it very well for some reason
 	 *
 	 * This still applies the restraints to length that the others apply, and silently fails if it predicts over or under extension
 	 * However, this is still technically unsafe since it does not actively apply restraints, since it can only predict so far.
@@ -130,20 +128,22 @@ public class LinearSlides {
 	/**
 	 * @brief Checks if the slides are over or under extending, and stops them if they are.
 	 *
-	 * @deprecated don't use this, I'm probably going to remove it later
+	 * @fixme this barely works, please fix
 	 *
 	 * Call this in the update loop to prevent the slides from over/under extending due to setVelocity
 	 */
 	public void checkForBadExtension(){
-		if(this.getExtension() > this.maxLength && currentDesiredVelocity > 0) {
+		if(this.getExtension() >= this.maxLength-0.5 && currentDesiredVelocity > 0) {
 			this.disableExtension = true;
+			this.freeze();
 		} else {
 			//this.unfreeze();
 			this.disableExtension = false;
 		}
 
-		if(this.getExtension() < this.retractedLength && currentDesiredVelocity < 0){
+		if(this.getExtension() <= this.retractedLength+0.5 && currentDesiredVelocity < 0){
 			this.disableRetraction = true;
+			this.freeze();
 		} else {
 			//this.unfreeze();
 			this.disableRetraction = false;
