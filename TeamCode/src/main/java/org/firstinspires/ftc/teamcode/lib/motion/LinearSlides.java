@@ -28,12 +28,11 @@ public class LinearSlides {
 	 * @param maxLength
 	 * @param spoolRadius
 	 */
-	public LinearSlides(PositionableMotor driveMotor, double retractedLength, double maxLength, double spoolRadius) {
+	public LinearSlides(PositionableMotor driveMotor, double retractedLength, double maxLength, double spoolCircumference) {
 		this.driveMotor = driveMotor;
 		this.retractedLength = retractedLength;
 		this.maxLength = maxLength;
-		this.spoolRadius = spoolRadius;
-		this.spoolCircumference = 2*Math.PI*this.spoolRadius;
+		this.spoolCircumference = spoolCircumference;
 	}
 
 	/**
@@ -70,10 +69,19 @@ public class LinearSlides {
 	}
 
 	/**
+	 * @brief returns the total that this slide is extended relative to the starting point, even through encoder resets
+	 *
+	 * @return
+	 */
+	public double getRelativeExtension(){
+		return this.spoolCircumference * this.driveMotor.getRotations();
+	}
+
+	/**
 	 * @brief Returns the total amount that this slide is extended, even through encoder resets
 	 */
 	public double getExtension(){
-		return this.spoolCircumference * this.driveMotor.getRotations() + this.retractedLength;
+		return this.getRelativeExtension() + this.retractedLength;
 	}
 
 	public void extend(double inches, double velocity){

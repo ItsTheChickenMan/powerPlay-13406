@@ -9,6 +9,8 @@ import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
 
 /**
  * @brief This doesn't use PositionableMotor so it's fairly unreliable if the encoders are reset.
+ *
+ * @deprecated use roadrunner instead
  */
 public class MecanumDrivePlusOdo extends MecanumDrive {
 	private Vec2 position;

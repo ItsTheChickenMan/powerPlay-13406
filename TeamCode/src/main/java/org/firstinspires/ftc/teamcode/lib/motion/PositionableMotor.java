@@ -12,8 +12,30 @@ public class PositionableMotor {
 	private double gearRatio; // NOTE: ratio of driver gear rotations : driven gear rotations
 	private double tickRatio;
 
+	// FIXME: make work for more than just methods that utilize target position
+	private double upperLimit; // an upper limit on how far the motor can rotate, in rotations
+	private double lowerLimit; // a lower limit on how far the motor can rotate, in rotations
+
+	private boolean limitsEnabled;
+
 	// disabled
 	private boolean disabled;
+
+	public static double rotationsToDegrees(double rotations){
+		return rotations * 360;
+	}
+
+	public static double rotationsToRadians(double rotations){
+		return rotations * Math.PI*2;
+	}
+
+	public static double radiansToRotations(double radians){
+		return radians / (Math.PI*2);
+	}
+
+	public static double degreesToRotations(double degrees){
+		return degrees / 360.0;
+	}
 
 	public PositionableMotor(DcMotorEx motor, double gearRatio, double tickRatio){
 		this.motor = motor;
@@ -28,6 +50,16 @@ public class PositionableMotor {
 
 		// enable
 		this.enable();
+
+		this.limitsEnabled = false;
+	}
+
+	public PositionableMotor(DcMotorEx motor, double gearRatio, double tickRatio, double lowerLimit, double upperLimit){
+		this(motor, gearRatio, tickRatio);
+
+		this.lowerLimit = lowerLimit;
+		this.upperLimit = upperLimit;
+		this.limitsEnabled = true;
 	}
 
 	/**
@@ -163,6 +195,8 @@ public class PositionableMotor {
 		 */
 	public void rotate(double rotations, double velocity){
 		if(this.disabled) return;
+
+		if(this.limitsEnabled && (this.getRotations()+rotations < lowerLimit || this.getRotations()+rotations > upperLimit)) return;
 
 		// position calculation
 		double drivingRotations = rotations * this.gearRatio;

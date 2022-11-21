@@ -14,6 +14,14 @@ public class AngleAdjuster extends PositionableMotor {
         this.limitSwitch = limitSwitch;
     }
 
+    public AngleAdjuster(DcMotorEx motor, double gearRatio, double tickRatio, double lowerLimit, double upperLimit, TouchSensor limitSwitch) {
+        // super constructor
+        super(motor, gearRatio, tickRatio, lowerLimit, upperLimit);
+
+        // limit switch
+        this.limitSwitch = limitSwitch;
+    }
+
     /**
      * @brief Call this every frame to determine if we have to shut off
      */

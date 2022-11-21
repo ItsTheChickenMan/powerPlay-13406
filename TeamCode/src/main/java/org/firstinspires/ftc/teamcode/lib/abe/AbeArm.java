@@ -1,13 +1,19 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
+import org.firstinspires.ftc.teamcode.opmodes.AimAtPointTest;
 
 /**
  * @brief The entire arm (angle adjuster, slides, wrist, and fingers) wrapped into one easy-to-use class
  */
-public class Arm {
+public class AbeArm {
 	private AngleAdjuster elbow;
 	public LinearSlides slides;
 
@@ -17,6 +23,15 @@ public class Arm {
 	// overall... //
 	private boolean manualControl; // is the programmer allowed to control the arm?
 
+	// slides length for aiming at point
+	private double aimSlidesLength;
+
+	// elbow angle for aiming at point
+	private double aimElbowAngle;
+
+	// are we aiming rn?
+	private boolean isAiming;
+
 	// elbow... //
 
 	// wrist... //
@@ -25,7 +40,7 @@ public class Arm {
 	// fingers ... //
 	private boolean fingersClamped;
 
-	public Arm(AngleAdjuster elbow, LinearSlides slides, PositionableServo wrist, PositionableServo fingers){
+	public AbeArm(AngleAdjuster elbow, LinearSlides slides, PositionableServo wrist, PositionableServo fingers){
 		this.elbow = elbow;
 		this.slides = slides;
 		this.wrist = wrist;
@@ -35,12 +50,75 @@ public class Arm {
 	// GETTERS & SETTERS //
 
 	/**
+	 * @brief aim at a certain point, relative to where the robot currently is
+	 *
+	 * These coordinates are permanently relative to the bot's coordinates.  Basically, the bot moving won't update the arm on its own
+	 *
+	 * Overwrites any previous point present
+	 *
+	 * If the point can't be reached, the arm doesn't do anything
+	 *
+	 * @param x how far in front of the bot the point is
+	 * @param y how far above/below the bot the point is
+	 */
+	public void aimAt(double x, double y){
+		// set slides extension
+		// FIXME: work for claw
+
+		this.aimSlidesLength = Math.sqrt(
+						x*x + y*y - AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES
+		);
+
+		// set elbow angle
+		this.aimElbowAngle = Math.atan(y/x) - Math.asin(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
+
+		// determine expected angular adjustment to account for falloff from stress
+		double falloffCounter = -(AbeConstants.ANGULAR_FALLOFF_PER_INCH_RADIANS * this.aimSlidesLength) * Math.cos(this.aimElbowAngle);
+
+		this.aimElbowAngle += falloffCounter;
+
+		//telemetry.addData("slides length", this.aimSlidesLength);
+
+		//telemetry.update();
+
+		//this.aimSlidesLength -= AbeConstants.SLIDE_OFFSET_INCHES;
+
+		//this.isAiming = false;
+		this.isAiming = true;
+	}
+
+	/**
+	 * @brief clears the robot's aim point, so it stops aiming
+	 */
+	public void clearAim(){
+		this.isAiming = false;
+	}
+
+	/**
+	 * @brief is the arm currently aiming at a point?
+	 *
+	 * @return true if it is, false if it isn't
+	 */
+	public boolean isAiming(){
+		return this.isAiming;
+	}
+
+	/**
 	 * @brief are the fingers currently clamped?
 	 *
 	 * @return true if they are, false if they're not
 	 */
 	public boolean getFingersClamped(){
 		return this.fingersClamped;
+	}
+
+	/**
+	 * @brief is manual programmer control enabled?
+	 *
+	 * @return true if it is, false if it isn't
+	 */
+	public boolean isManualControlEnabled(){
+		return this.manualControl;
 	}
 
 	/**
@@ -222,44 +300,26 @@ public class Arm {
 	}
 
 	/**
-	 * @brief Bring the end of the arm to a certain point in front of it from the point where the elbow rotates
-	 *
-	 * @param x forward/backward from robot
-	 * @param y up/down from robot
-	 */
-	public void goToPoint(double x, double y, double elbowVelocity, double slidesVelocity){
-		// angle of angle adjuster is atan2(y/x)
-		double angle = Math.atan2(y, x);
-
-		// length of the slides (from elbow's point of rotation)
-		double length = Math.sqrt(x*x + y*y);
-
-		// using multithreading to angle elbow and then extend
-		Runnable movementRunner = () -> {
-			this.elbow.rotateAngleRadians(angle, elbowVelocity);
-
-			// FIXME: problem with opModeIsActive()?
-			while(this.elbow.isBusy());
-
-			this.slides.extendTo(length, slidesVelocity);
-		};
-
-		Thread movementThread = new Thread(movementRunner);
-
-		movementThread.start();
-	}
-
-	/**
 	 * @brief Adjust the wrist's angle for the elbow's angle
 	 */
 	public void updateWrist(){
-		this.wrist.rotateToDegrees( -this.wrist.getMaxRangeDegrees()/2. - this.elbow.getAngleDegrees() + this.wristAngle);
+		this.wrist.rotateToDegrees( -this.wrist.getMaxRangeDegrees()/2. + this.elbow.getAngleDegrees() + this.wristAngle);
 	}
 
 	/**
 	 * @brief Update the entire arm (required in automatic mode)
 	 */
 	public void update(){
+		// update slides length/elbow angle
+		if(this.isAiming() && !this.isManualControlEnabled()){
+			// FIXME: allow velocity to be set by programmer
+			AimAtPointTest.globalTelemetry.addData("elbow angle", this.aimElbowAngle);
+			AimAtPointTest.globalTelemetry.addData("slides length", this.aimSlidesLength);
+
+			this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/2.0);
+			this.slides.extendTo(this.aimSlidesLength, 30.0);
+		}
+
 		// check elbow
 		//this.elbow.check();
 

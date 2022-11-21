@@ -5,6 +5,11 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 
+/**
+ * @brief Basic mecanum drive
+ *
+ * @deprecated use roadrunner instead
+ */
 public class MecanumDrive {
     // the motors for this drive train.
     public PositionableMotor frontLeft;

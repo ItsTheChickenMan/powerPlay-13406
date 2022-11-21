@@ -10,9 +10,6 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
-import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
-import org.firstinspires.ftc.teamcode.lib.drive.MecanumDrive;
-import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 
 /**
  * Completely manual drive.  Just about every moving part is managed directly
@@ -63,12 +60,9 @@ public class AbeManual extends LinearOpMode {
 
 		// initialize
 		try {
-			abe = new AbeBot(this.hardware);
+			abe = new AbeBot(hardwareMap);
 		} catch(Exception e){
-			telemetry.addLine(e.getMessage());
-			telemetry.update();
-
-			return;
+			e.printStackTrace();
 		}
 
 		// enable manual
@@ -82,7 +76,7 @@ public class AbeManual extends LinearOpMode {
 		waitForStart();
 
 		// permanent wrist adjustment
-		this.abe.arm.positionWristDegrees(25);
+		this.abe.arm.positionWristDegrees(0);
 
 		// fingers logic
 		boolean lastClamped = false;
@@ -116,7 +110,7 @@ public class AbeManual extends LinearOpMode {
 			telemetry.addData("controller", gamepad2.right_stick_y);
 			telemetry.addData("desiredVelocity", this.abe.arm.slides.currentDesiredVelocity);
 			telemetry.addData("speed", this.abe.arm.slides.getVelocity());
-			telemetry.addData("extension", this.abe.arm.slides.getExtension());
+			telemetry.addData("extension", this.abe.arm.slides.getRelativeExtension());
 
 			// fingers...
 			if(gamepad2.a && !lastClamped){
@@ -144,7 +138,8 @@ public class AbeManual extends LinearOpMode {
 			double rotation = gamepad1.right_stick_x;
 			double speed = 1.3 - gamepad1.right_trigger;
 
-			this.abe.drive.driveNormal(forward, strafe, rotation, speed);
+			// FIXME: redo for SampleMecanumDrive
+			//this.abe.drive.driveNormal(forward, strafe, rotation, speed);
 		}
 	}
 }
