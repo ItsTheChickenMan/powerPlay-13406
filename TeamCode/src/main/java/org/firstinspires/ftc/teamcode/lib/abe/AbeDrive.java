@@ -70,6 +70,23 @@ public class AbeDrive {
 	}
 
 	/**
+	 * @brief Set the pose estimate for the drive train,
+	 *
+	 * @param x
+	 * @param y
+	 * @param rotation
+	 */
+	public void setPoseEstimate(double x, double y, double rotation){
+		this.drive.setPoseEstimate(new Pose2d(
+
+		));
+	}
+
+	public void setPoseEstimate(Pose2d pose){
+		this.drive.setPoseEstimate(pose);
+	}
+
+	/**
 	 * @brief is the bot aiming at a point at the moment?
 	 *
 	 * @return true if it is, false if it isn't

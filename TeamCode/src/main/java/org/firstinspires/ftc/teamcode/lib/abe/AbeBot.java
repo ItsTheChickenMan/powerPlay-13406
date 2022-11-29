@@ -133,6 +133,20 @@ public class AbeBot {
 		);
 	}
 
+	public void setPoseEstimate(double x, double y, double r){
+		this.drive.setPoseEstimate(x, y, r);
+	}
+
+	/**
+	 * @brief Set the pose estimate from an existing pose
+	 *
+	 * It's only recommended to do this when taking a pose from auto, or something similar.  To provide custom starting values, use the other method since it uses "sane" coordinates
+	 * @param pose
+	 */
+	public void setPoseEstimate(Pose2d pose){
+		this.drive.setPoseEstimate(pose);
+	}
+
 	/**
 	 * @brief make Abe aim himself at a point with the arm and the drivetrain
 	 *
