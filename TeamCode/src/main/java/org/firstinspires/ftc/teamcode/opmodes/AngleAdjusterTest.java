@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 
 import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class AngleAdjusterTest extends LinearOpMode {
     DcMotorEx angleMotor;
     TouchSensor limitSensor;

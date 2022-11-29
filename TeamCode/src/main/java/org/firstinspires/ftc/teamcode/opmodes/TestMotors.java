@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class TestMotors extends LinearOpMode {
 
 	@Override

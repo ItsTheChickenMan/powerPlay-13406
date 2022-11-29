@@ -49,6 +49,10 @@ public class AbeArm {
 
 	// GETTERS & SETTERS //
 
+	public void aimAt(double x, double y){
+		this.aimAt(x, y, true);
+	}
+
 	/**
 	 * @brief aim at a certain point, relative to where the robot currently is
 	 *
@@ -61,26 +65,48 @@ public class AbeArm {
 	 * @param x how far in front of the bot the point is
 	 * @param y how far above/below the bot the point is
 	 */
-	public void aimAt(double x, double y){
+	public void aimAt(double x, double y, boolean accountForFalloff){
 		// set slides extension
-		// FIXME: work for claw
-
+		// TODO: account for slide bending?
 		this.aimSlidesLength = Math.sqrt(
 						x*x + y*y - AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES
 		);
 
+		AimAtPointTest.globalTelemetry.addData("slides", this.aimSlidesLength);
+
+		//double temp = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
+
+		// account for sagging (better word for this than "falloff" but too late now)
+		/*if(accountForFalloff) {
+			// determine height falloff counter
+			// we use height for predicted falloff because it's easier to measure physically
+			// this gets applied to y before it gets fed into the angle, and only the angle (slides length calculated normally)
+			//double falloffPrediction = AbeConstants.getExpectedHeightFalloff(this.aimSlidesLength) * Math.cos(temp);
+
+			//y += falloffPrediction;
+
+			this.aimElbowAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
+		} else {
+			this.aimElbowAngle = temp;
+		}*/
+
 		// set elbow angle
-		this.aimElbowAngle = Math.atan(y/x) - Math.asin(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
+		this.aimElbowAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
 
 		// determine expected angular adjustment to account for falloff from stress
-		double falloffCounter = -(AbeConstants.ANGULAR_FALLOFF_PER_INCH_RADIANS * this.aimSlidesLength) * Math.cos(this.aimElbowAngle);
+		if(accountForFalloff) {
+			double stressFactor = Math.cos(this.aimElbowAngle)*this.aimSlidesLength - AbeConstants.ELBOW_TORQUE_FACTOR*AbeConstants.ELBOW_RADIUS_INCHES*Math.sin(this.aimElbowAngle);
 
-		this.aimElbowAngle += falloffCounter;
+			double falloffCounter = AbeConstants.getExpectedElbowSag(stressFactor);
 
-		//telemetry.addData("slides length", this.aimSlidesLength);
+			// adjust wrist for falloff counter
+			this.positionWristRadians(-falloffCounter);
 
-		//telemetry.update();
+			this.aimElbowAngle += falloffCounter;
+		}
 
+
+		// we don't use this because I forgot that the LinearSlides class already accounts for the offset and just extends to the length it's told
 		//this.aimSlidesLength -= AbeConstants.SLIDE_OFFSET_INCHES;
 
 		//this.isAiming = false;
@@ -310,21 +336,18 @@ public class AbeArm {
 	 * @brief Update the entire arm (required in automatic mode)
 	 */
 	public void update(){
-		// update slides length/elbow angle
+		// update slides length/elbow angle+
+
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// FIXME: allow velocity to be set by programmer
-			AimAtPointTest.globalTelemetry.addData("elbow angle", this.aimElbowAngle);
-			AimAtPointTest.globalTelemetry.addData("slides length", this.aimSlidesLength);
-
-			this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/2.0);
-			this.slides.extendTo(this.aimSlidesLength, 30.0);
+			this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
+			this.slides.extendTo(this.aimSlidesLength, 10.0);
 		}
 
 		// check elbow
 		//this.elbow.check();
 
 		// check slides
-		// TODO: have this set by programmer
 		this.slides.checkForBadExtension();
 
 		// update wrist

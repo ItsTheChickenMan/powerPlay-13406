@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class FingersTest extends LinearOpMode {
 	@Override
 	public void runOpMode() throws InterruptedException {

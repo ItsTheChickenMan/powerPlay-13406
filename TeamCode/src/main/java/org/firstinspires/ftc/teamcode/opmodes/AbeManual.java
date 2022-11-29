@@ -56,7 +56,7 @@ public class AbeManual extends LinearOpMode {
 		telemetry.addLine("Loading hardware...");
 		telemetry.update();
 
-		this.loadHardware();
+		//this.loadHardware();
 
 		// initialize
 		try {
@@ -67,6 +67,8 @@ public class AbeManual extends LinearOpMode {
 
 		// enable manual
 		this.abe.arm.enableManualControl();
+
+		this.abe.drive.clearPoint();
 
 		// log
 		telemetry.addData("Status", "Initialized");
@@ -96,7 +98,7 @@ public class AbeManual extends LinearOpMode {
 			// arm logic //
 
 			// elbow...
-			this.abe.arm.setElbowSpeedDegrees(gamepad2.left_stick_y * 50);
+			this.abe.arm.setElbowSpeedDegrees(gamepad2.left_stick_y * 50 * (1.3 - gamepad2.left_trigger));
 
 			// slides...
 			if(Math.abs(gamepad2.right_stick_y) > 0.02) {
@@ -139,7 +141,9 @@ public class AbeManual extends LinearOpMode {
 			double speed = 1.3 - gamepad1.right_trigger;
 
 			// FIXME: redo for SampleMecanumDrive
-			//this.abe.drive.driveNormal(forward, strafe, rotation, speed);
+			this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
+			this.abe.drive.rotate(rotation*speed);
+			this.abe.drive.update();
 		}
 	}
 }

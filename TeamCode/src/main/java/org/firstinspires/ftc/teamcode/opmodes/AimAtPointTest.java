@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.lib.abe.AbeConfig;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeDrive;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class AimAtPointTest extends LinearOpMode {
 	//private AbeDrive drive;
 	private AbeBot abe;
@@ -37,7 +37,7 @@ public class AimAtPointTest extends LinearOpMode {
 		}
 
 		// set point to 0
-		this.abe.aimAtPointFromStart(0, 34, 15.75);
+		this.abe.aimAtPointFromStart(0, 38, 24);
 
 		waitForStart();
 

@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class LinearSlideTest extends LinearOpMode {
 	public void runOpMode(){
 		DcMotorEx drive = hardwareMap.get(DcMotorEx.class, "slidesMotor");
@@ -26,7 +26,7 @@ public class LinearSlideTest extends LinearOpMode {
 		slides.extend(16, 32);
 
 		while(opModeIsActive()){
-			telemetry.addData("Status", "Running");
+			telemetry.addData("slides", slides.getRelativeExtension());
 			telemetry.update();
 		}
 	}

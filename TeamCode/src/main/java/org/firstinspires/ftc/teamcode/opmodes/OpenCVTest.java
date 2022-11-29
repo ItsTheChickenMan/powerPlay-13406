@@ -11,7 +11,7 @@ import org.openftc.easyopencv.OpenCvWebcam;
 
 // basic opmode for testing opencv pipelines
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class OpenCVTest extends LinearOpMode {
 	// change this type to a different pipeline to test a different one
 	TestPipeline pipeline = new TestPipeline();

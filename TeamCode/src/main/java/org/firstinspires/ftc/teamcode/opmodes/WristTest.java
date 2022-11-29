@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class WristTest extends LinearOpMode {
 	PositionableServo wrist;
 	PositionableMotor angleAdjuster;

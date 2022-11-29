@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.drive.MecanumDrivePlusOdo;
 import org.firstinspires.ftc.teamcode.lib.utils.Imu;
 
-@TeleOp
+@TeleOp(group = "Tests")
 public class MecanumOdometryTest extends LinearOpMode {
 	private MecanumDrivePlusOdo drivePlusOdo;
 

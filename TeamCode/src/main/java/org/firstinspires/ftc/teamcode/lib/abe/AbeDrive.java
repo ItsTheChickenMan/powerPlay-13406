@@ -180,6 +180,13 @@ public class AbeDrive {
 		this.backRightPower += forward + strafe;
 	}
 
+	public void rotate(double rotation){
+		this.frontLeftPower += rotation;
+		this.frontRightPower -= rotation;
+		this.backLeftPower += rotation;
+		this.backRightPower -= rotation;
+	}
+
 	public void normalizePowers(){
 		double largest = Math.max(this.backRightPower, Math.max(this.backLeftPower, Math.max(this.frontLeftPower, this.frontRightPower)));
 

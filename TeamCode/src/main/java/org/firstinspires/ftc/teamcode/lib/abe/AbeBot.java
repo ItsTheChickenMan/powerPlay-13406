@@ -162,9 +162,11 @@ public class AbeBot {
 		this.aimAtPoint = new Vector3D(x, y, z);
 	}
 
-	public void update(){
+	public void update(boolean doDriveUpdate){
 		// update drive
-		this.drive.update();
+		if(doDriveUpdate) {
+			this.drive.update();
+		}
 
 		// update arm
 		Pose2d pose = this.drive.getPoseEstimate();
@@ -179,11 +181,15 @@ public class AbeBot {
 
 		armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
 
-		//AimAtPointTest.globalTelemetry.addData("armDistance", armDistance);
-		//AimAtPointTest.globalTelemetry.addData("armHeight", armHeight);
+		AimAtPointTest.globalTelemetry.addData("armDistance", armDistance);
+		AimAtPointTest.globalTelemetry.addData("armHeight", armHeight);
 
 		this.arm.aimAt(armDistance, armHeight);
 
 		this.arm.update();
+	}
+
+	public void update(){
+		this.update(true);
 	}
 }
