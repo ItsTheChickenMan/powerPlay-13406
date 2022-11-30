@@ -337,7 +337,6 @@ public class AbeArm {
 	 */
 	public void update(){
 		// update slides length/elbow angle+
-
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// FIXME: allow velocity to be set by programmer
 			this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
