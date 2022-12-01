@@ -8,14 +8,11 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
-import org.apache.commons.math3.geometry.Vector;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
-import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
+import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
-import org.firstinspires.ftc.teamcode.opmodes.AimAtPointTest;
 
 /**
  * @brief Class for controlling an ABE bot (aka our power play bot v1)
@@ -47,6 +44,7 @@ public class AbeBot {
 
 		public DcMotorEx elbow;
 		public DcMotorEx slides;
+		public DcMotorEx slides2;
 
 		public Servo wristServo;
 		public Servo fingerServo;
@@ -68,6 +66,7 @@ public class AbeBot {
 
 			this.elbow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 			this.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+			this.slides2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 		}
 
 		public boolean complete(){
@@ -78,6 +77,7 @@ public class AbeBot {
 							this.backRight != null &&*/
 							this.elbow != null &&
 							this.slides != null &&
+							this.slides2 != null &&
 							this.wristServo != null &&
 							this.fingerServo != null &&
 							this.elbowLimitSensor != null
@@ -98,6 +98,11 @@ public class AbeBot {
 
 	// point being aimed at currently
 	private Vector3D aimAtPoint;
+
+	// activity of each aim component
+	private boolean doDriveAim;
+	private boolean doElbowAim;
+	private boolean doSlidesAim;
 
 	/**
 	 * @brief Constructor
@@ -127,7 +132,12 @@ public class AbeBot {
 
 		this.arm = new AbeArm(
 						new AngleAdjuster(this.hardware.elbow, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TICK_RATIO, AbeConstants.ELBOW_LOWER_LIMIT_ROTATIONS, AbeConstants.ELBOW_UPPER_LIMIT_ROTATIONS, this.hardware.elbowLimitSensor),
-						new LinearSlides(new PositionableMotor(this.hardware.slides, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO), AbeConstants.SLIDE_BASE_LENGTH_INCHES, AbeConstants.SLIDE_BASE_LENGTH_INCHES + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES),
+						new LinearSlidesEx(
+										new PositionableMotor[]{
+														new PositionableMotor(this.hardware.slides, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO),
+														new PositionableMotor(this.hardware.slides2, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO)
+										},
+										AbeConstants.SLIDE_BASE_LENGTH_INCHES, AbeConstants.SLIDE_BASE_LENGTH_INCHES + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES, AbeConstants.SLIDE_EXTENSION_FACTOR),
 						new PositionableServo(this.hardware.wristServo, AbeConstants.WRIST_MAX_RANGE_RADIANS),
 						new PositionableServo(this.hardware.fingerServo, AbeConstants.FINGERS_MAX_RANGE_RADIANS)
 		);
@@ -147,6 +157,20 @@ public class AbeBot {
 		this.drive.setPoseEstimate(pose);
 	}
 
+	public void aimAt(double x, double y, double z){
+		this.aimAt(x, y, z, true, true, true);
+	}
+
+	public void aimAt(double x, double y, double z, boolean doDrive, boolean doElbow, boolean doSlides){
+		this.doDriveAim = doDrive;
+		this.doElbowAim = doElbow;
+		this.doSlidesAim = doSlides;
+
+		this.drive.aimAt(z, x);
+
+		this.aimAtPoint = new Vector3D(x, y, z);
+	}
+
 	/**
 	 * @brief make Abe aim himself at a point with the arm and the drivetrain
 	 *
@@ -155,41 +179,63 @@ public class AbeBot {
 	 * @param z
 	 */
 	public void aimAtPointFromStart(double x, double y, double z){
-		// make drive aim at point
-		this.drive.aimAtPointFromStart(z, x);
-
-		// save point
-		this.aimAtPoint = new Vector3D(x, y, z);
+		this.aimAtPointFromStart(x, y, z, true, true, true);
 	}
 
-	public void update(boolean doDriveUpdate){
+	public void aimAtPointFromStart(double x, double y, double z, boolean doDrive, boolean doElbow, boolean doSlides){
+		this.doDriveAim = doDrive;
+		this.doElbowAim = doElbow;
+		this.doSlidesAim = doSlides;
+
+		// get offset for drive
+		Pose2d pose = this.drive.getPoseEstimate();
+
+		// make drive aim at point
+		this.drive.aimAt(z - pose.getY(), x - pose.getX());
+
+		// save point
+		this.aimAtPoint = new Vector3D(x - pose.getY(), y, z - pose.getX());
+	}
+
+	public void clearPoint(){
+		this.aimAtPoint = null;
+
+		this.drive.clearPoint();
+
+		// TODO: why does this have different name
+		this.arm.clearAim();
+	}
+
+	public boolean isAiming(){
+		return this.aimAtPoint != null;
+	}
+
+	public void update(){
 		// update drive
-		if(doDriveUpdate) {
+		if(this.doDriveAim) {
 			this.drive.update();
 		}
 
 		// update arm
-		Pose2d pose = this.drive.getPoseEstimate();
+		if(this.isAiming()) {
+			Pose2d pose = this.drive.getPoseEstimate();
 
-		double offsetX = pose.getX() - this.aimAtPoint.getZ();
-		double offsetZ = pose.getY() - this.aimAtPoint.getX();
+			double offsetX = pose.getX() - this.aimAtPoint.getZ();
+			double offsetZ = pose.getY() - this.aimAtPoint.getX();
 
-		// get arm values and stuff
-		double botDistance2 = offsetX*offsetX + offsetZ*offsetZ;
-		double armDistance = Math.sqrt(botDistance2 - AbeConstants.ARM_LATERAL_OFFSET_INCHES*AbeConstants.ARM_LATERAL_OFFSET_INCHES) - AbeConstants.ARM_LONGINAL_OFFSET_INCHES;
-		double armHeight = this.aimAtPoint.getY() - AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
+			// get arm values and stuff
+			double botDistance2 = offsetX * offsetX + offsetZ * offsetZ;
+			double armDistance = Math.sqrt(botDistance2 - AbeConstants.ARM_LATERAL_OFFSET_INCHES * AbeConstants.ARM_LATERAL_OFFSET_INCHES) - AbeConstants.ARM_LONGINAL_OFFSET_INCHES;
+			double armHeight = this.aimAtPoint.getY() - AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
 
-		armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
+			armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
 
-		AimAtPointTest.globalTelemetry.addData("armDistance", armDistance);
-		AimAtPointTest.globalTelemetry.addData("armHeight", armHeight);
+			//AimAtPointTest.globalTelemetry.addData("armDistance", armDistance);
+			//AimAtPointTest.globalTelemetry.addData("armHeight", armHeight);
 
-		this.arm.aimAt(armDistance, armHeight);
+			this.arm.aimAt(armDistance, armHeight);
+		}
 
 		this.arm.update();
-	}
-
-	public void update(){
-		this.update(true);
 	}
 }

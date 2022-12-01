@@ -37,7 +37,7 @@ public class AimAtPointTest extends LinearOpMode {
 		}
 
 		// set point to 0
-		this.abe.aimAtPointFromStart(0, 38, 24);
+		this.abe.aimAtPointFromStart(0, 28.5, 12);
 
 		waitForStart();
 

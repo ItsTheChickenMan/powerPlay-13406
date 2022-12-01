@@ -16,7 +16,7 @@ public class LinearSlideTest extends LinearOpMode {
 
 		drive.setDirection(DcMotorSimple.Direction.REVERSE);
 
-		LinearSlides slides = new LinearSlides(new PositionableMotor(drive, 1, 384.5), AbeConstants.SLIDE_BASE_LENGTH_INCHES, AbeConstants.SLIDE_BASE_LENGTH_INCHES + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES);
+		LinearSlides slides = new LinearSlides(new PositionableMotor(drive, 1, 384.5), AbeConstants.SLIDE_BASE_LENGTH_INCHES, AbeConstants.SLIDE_BASE_LENGTH_INCHES + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES, AbeConstants.SLIDE_EXTENSION_FACTOR);
 
 		telemetry.addData("Status", "Initialized");
 		telemetry.update();

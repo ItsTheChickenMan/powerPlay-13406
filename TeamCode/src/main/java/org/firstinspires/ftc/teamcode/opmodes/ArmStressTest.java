@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 
@@ -13,8 +14,12 @@ import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 public class ArmStressTest extends LinearOpMode {
 	private AbeBot abe;
 
+	public static Telemetry globalTelemetry;
+
 	@Override
 	public void runOpMode() throws InterruptedException {
+		ArmStressTest.globalTelemetry = telemetry;
+
 		try {
 			abe = new AbeBot(hardwareMap);
 		} catch(Exception e) {

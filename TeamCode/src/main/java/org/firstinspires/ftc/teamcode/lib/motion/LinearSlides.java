@@ -9,6 +9,8 @@ public class LinearSlides {
 	private double spoolCircumference;
 	private double retractedLength;
 	private double maxLength;
+	private double extensionFactor; // factor for accounting for linear overextension
+	private double inverseExtensionFactor;
 
 	private boolean disableRetraction;
 	private boolean disableExtension;
@@ -28,11 +30,13 @@ public class LinearSlides {
 	 * @param maxLength
 	 * @param spoolRadius
 	 */
-	public LinearSlides(PositionableMotor driveMotor, double retractedLength, double maxLength, double spoolCircumference) {
+	public LinearSlides(PositionableMotor driveMotor, double retractedLength, double maxLength, double spoolCircumference, double extensionFactor) {
 		this.driveMotor = driveMotor;
 		this.retractedLength = retractedLength;
 		this.maxLength = maxLength;
 		this.spoolCircumference = spoolCircumference;
+		this.extensionFactor = extensionFactor;
+		this.inverseExtensionFactor = 1.0 / this.extensionFactor;
 	}
 
 	/**
@@ -74,7 +78,7 @@ public class LinearSlides {
 	 * @return
 	 */
 	public double getRelativeExtension(){
-		return this.spoolCircumference * this.driveMotor.getRotations();
+		return this.spoolCircumference * this.driveMotor.getRotations() * this.extensionFactor;
 	}
 
 	/**
@@ -105,6 +109,8 @@ public class LinearSlides {
 		// calculate rotations
 		double rotations = (inches - this.retractedLength) / this.spoolCircumference;
 		double rotationsVelocity = velocity / this.spoolCircumference;
+
+		rotations *= this.inverseExtensionFactor;
 
 		// drive
 		this.driveMotor.rotateTo(rotations, rotationsVelocity);

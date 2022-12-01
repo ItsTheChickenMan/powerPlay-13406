@@ -74,7 +74,7 @@ public class BasicDriveSlides extends LinearOpMode {
 		this.slidesMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 		// create slides
-		LinearSlides slides = new LinearSlides(new PositionableMotor(this.slidesMotor, 1, 384.5), 18, 18 + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES);
+		LinearSlides slides = new LinearSlides(new PositionableMotor(this.slidesMotor, 1, 384.5), 18, 18 + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES, AbeConstants.SLIDE_EXTENSION_FACTOR);
 
 		// we log this so that we know initialization is done
 		telemetry.addLine("Initializing done.");

@@ -24,6 +24,7 @@ public class AbeConstants {
 	public static final double ARM_LATERAL_OFFSET_INCHES = 2.125;
 	public static final double ARM_LONGINAL_OFFSET_INCHES = -5.125;
 	public static final double ARM_VERTICAL_OFFSET_INCHES = 4.75;
+	public static final double ARM_POLE_HEIGHT_OFFSET_INCHES = 6.0; // how many inches to aim above a pole
 
 	// how far the arm falls per inch at 0 degrees
 	// multiplied by cos(angle) to determine expected angular adjustment required at a given extension
@@ -32,7 +33,7 @@ public class AbeConstants {
 
 	//public static final double HEIGHT_FALLOFF_PER_INCH_INCHES = -0.11439;
 
-	public static final double ELBOW_TORQUE_FACTOR = 3;
+	public static final double ELBOW_TORQUE_FACTOR = 2.5;
 
 	public static double getExpectedElbowSag(double slideExtension){
 		// approximately linear relationship
@@ -54,6 +55,7 @@ public class AbeConstants {
 	public static final double SLIDE_SPOOL_CIRCUMFERENCE_INCHES = 4.40944882;
 	public static final double SLIDE_BASE_LENGTH_INCHES = 16;
 	public static final double SLIDE_MAX_EXTENSION_INCHES = 38; // leaving off two inches as a just-in-case pillow...
+	public static final double SLIDE_EXTENSION_FACTOR = 1.0875; // slides extend about 1.05 times more than they're told to
 
 	/**
 	 * @deprecated just adjust the base length instead
@@ -63,7 +65,7 @@ public class AbeConstants {
 	// wrist related... //
 	public static final double WRIST_MAX_RANGE_DEGREES = 295;
 	public static final double WRIST_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.WRIST_MAX_RANGE_DEGREES);
-	public static final double WRIST_OFFSET_INCHES = 0.0; // how far forward the wrist hole is from the end of the slides
+	public static final double WRIST_OFFSET_INCHES = 6.5; // how far forward the wrist hole is from the end of the slides
 
 	// fingers related... //
 	public static final double FINGERS_MAX_RANGE_DEGREES = 360; // FIXME: update value

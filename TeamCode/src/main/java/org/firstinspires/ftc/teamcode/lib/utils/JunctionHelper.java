@@ -28,6 +28,18 @@ public class JunctionHelper {
 		return new int[]{cx, cy};
 	}
 
+	public static int[] rawToSnapped(double[] coords){
+		return JunctionHelper.rawToSnapped(coords[0], coords[1]);
+	}
+
+	public static double[] snappedToRaw(int x, int y){
+		return new double[]{x*24.0, y*24.0};
+	}
+
+	public static double[] snappedToRaw(int[] coords){
+		return JunctionHelper.snappedToRaw(coords[0], coords[1]);
+	}
+
 	/**
 	 * @brief Takes raw coordinates (in inches) and converts them to the nearest junction position, and then returns the junction level
 	 */

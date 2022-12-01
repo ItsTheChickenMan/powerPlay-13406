@@ -7,15 +7,17 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
+import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 import org.firstinspires.ftc.teamcode.opmodes.AimAtPointTest;
+import org.firstinspires.ftc.teamcode.opmodes.ArmStressTest;
 
 /**
  * @brief The entire arm (angle adjuster, slides, wrist, and fingers) wrapped into one easy-to-use class
  */
 public class AbeArm {
 	private AngleAdjuster elbow;
-	public LinearSlides slides;
+	public LinearSlidesEx slides;
 
 	private PositionableServo wrist;
 	private PositionableServo fingers;
@@ -32,6 +34,9 @@ public class AbeArm {
 	// are we aiming rn?
 	private boolean isAiming;
 
+	private boolean doElbowAim;
+	private boolean doSlidesAim;
+
 	// elbow... //
 
 	// wrist... //
@@ -40,7 +45,7 @@ public class AbeArm {
 	// fingers ... //
 	private boolean fingersClamped;
 
-	public AbeArm(AngleAdjuster elbow, LinearSlides slides, PositionableServo wrist, PositionableServo fingers){
+	public AbeArm(AngleAdjuster elbow, LinearSlidesEx slides, PositionableServo wrist, PositionableServo fingers){
 		this.elbow = elbow;
 		this.slides = slides;
 		this.wrist = wrist;
@@ -50,7 +55,7 @@ public class AbeArm {
 	// GETTERS & SETTERS //
 
 	public void aimAt(double x, double y){
-		this.aimAt(x, y, true);
+		this.aimAt(x, y, true, true);
 	}
 
 	/**
@@ -65,14 +70,17 @@ public class AbeArm {
 	 * @param x how far in front of the bot the point is
 	 * @param y how far above/below the bot the point is
 	 */
-	public void aimAt(double x, double y, boolean accountForFalloff){
+	public void aimAt(double x, double y, boolean doElbow, boolean doSlides){
+		this.doElbowAim = doElbow;
+		this.doSlidesAim = doSlides;
+
 		// set slides extension
 		// TODO: account for slide bending?
 		this.aimSlidesLength = Math.sqrt(
 						x*x + y*y - AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES
 		);
 
-		AimAtPointTest.globalTelemetry.addData("slides", this.aimSlidesLength);
+		//ArmStressTest.globalTelemetry.addData("slides", this.aimSlidesLength);
 
 		//double temp = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
 
@@ -94,17 +102,14 @@ public class AbeArm {
 		this.aimElbowAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
 
 		// determine expected angular adjustment to account for falloff from stress
-		if(accountForFalloff) {
-			double stressFactor = Math.cos(this.aimElbowAngle)*this.aimSlidesLength - AbeConstants.ELBOW_TORQUE_FACTOR*AbeConstants.ELBOW_RADIUS_INCHES*Math.sin(this.aimElbowAngle);
+		double stressFactor = Math.cos(this.aimElbowAngle)*this.aimSlidesLength - AbeConstants.ELBOW_TORQUE_FACTOR*AbeConstants.ELBOW_RADIUS_INCHES*Math.sin(this.aimElbowAngle);
 
-			double falloffCounter = AbeConstants.getExpectedElbowSag(stressFactor);
+		double falloffCounter = AbeConstants.getExpectedElbowSag(stressFactor);
 
-			// adjust wrist for falloff counter
-			this.positionWristRadians(-falloffCounter);
+		// adjust wrist for falloff counter
+		this.positionWristRadians(-falloffCounter);
 
-			this.aimElbowAngle += falloffCounter;
-		}
-
+		this.aimElbowAngle += falloffCounter;
 
 		// we don't use this because I forgot that the LinearSlides class already accounts for the offset and just extends to the length it's told
 		//this.aimSlidesLength -= AbeConstants.SLIDE_OFFSET_INCHES;
@@ -339,8 +344,8 @@ public class AbeArm {
 		// update slides length/elbow angle+
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// FIXME: allow velocity to be set by programmer
-			this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
-			this.slides.extendTo(this.aimSlidesLength, 10.0);
+			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
+			if(this.doSlidesAim) this.slides.extendTo(this.aimSlidesLength, 10.0);
 		}
 
 		// check elbow

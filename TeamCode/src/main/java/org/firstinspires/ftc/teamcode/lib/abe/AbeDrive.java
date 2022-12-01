@@ -6,10 +6,11 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
+
+import java.util.Vector;
 
 /**
  * @brief Drive that is specifically designed for versions of Abe during Power Play
@@ -69,6 +70,14 @@ public class AbeDrive {
 		return this.drive.getPoseEstimate();
 	}
 
+	public Vector2D getPoseEstimateAsVector(){
+			return new Vector2D(this.drive.getPoseEstimate().getX(), this.drive.getPoseEstimate().getY());
+	}
+
+	public Vector2D getPoseEstimateAsRegularVector(){
+		return new Vector2D( -this.drive.getPoseEstimate().getY(),  this.drive.getPoseEstimate().getX());
+	}
+
 	/**
 	 * @brief Set the pose estimate for the drive train,
 	 *
@@ -105,7 +114,7 @@ public class AbeDrive {
 	 * @param x x value for point to aim at
 	 * @parma y y value for point to aim at
 	 */
-	public void aimAtPointFromStart(double x, double y){
+	public void aimAt(double x, double y){
 		this.aimAtPoint = new Vector2d(x, y);
 	}
 

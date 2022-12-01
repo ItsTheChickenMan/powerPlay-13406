@@ -110,9 +110,9 @@ public class AbeManual extends LinearOpMode {
 			}
 
 			telemetry.addData("controller", gamepad2.right_stick_y);
-			telemetry.addData("desiredVelocity", this.abe.arm.slides.currentDesiredVelocity);
-			telemetry.addData("speed", this.abe.arm.slides.getVelocity());
-			telemetry.addData("extension", this.abe.arm.slides.getRelativeExtension());
+			//telemetry.addData("desiredVelocity", this.abe.arm.slides.currentDesiredVelocity);
+			//telemetry.addData("speed", this.abe.arm.slides.getVelocity());
+			//telemetry.addData("extension", this.abe.arm.slides.getRelativeExtension());
 
 			// fingers...
 			if(gamepad2.a && !lastClamped){
