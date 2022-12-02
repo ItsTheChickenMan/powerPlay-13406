@@ -68,7 +68,7 @@ public class AbeManual extends LinearOpMode {
 		// enable manual
 		this.abe.arm.enableManualControl();
 
-		this.abe.drive.clearPoint();
+		this.abe.drive.clearAim();
 
 		// log
 		telemetry.addData("Status", "Initialized");
@@ -98,7 +98,7 @@ public class AbeManual extends LinearOpMode {
 			// arm logic //
 
 			// elbow...
-			this.abe.arm.setElbowSpeedDegrees(gamepad2.left_stick_y * 50 * (1.3 - gamepad2.left_trigger));
+			this.abe.arm.setElbowSpeedDegrees(-gamepad2.left_stick_y * 50 * (1.3 - gamepad2.left_trigger));
 
 			// slides...
 			if(Math.abs(gamepad2.right_stick_y) > 0.02) {
@@ -135,10 +135,10 @@ public class AbeManual extends LinearOpMode {
 			this.abe.arm.update();
 
 			// drive logic //
-			double forward = -gamepad1.left_stick_y;
-			double strafe = gamepad1.left_stick_x;
-			double rotation = gamepad1.right_stick_x;
-			double speed = 1.3 - gamepad1.right_trigger;
+			double forward = -gamepad1.left_stick_y*0.6;
+			double strafe = gamepad1.left_stick_x*0.6;
+			double rotation = gamepad1.right_stick_x*0.6;
+			double speed = 1.35 - gamepad1.right_trigger;
 
 			// FIXME: redo for SampleMecanumDrive
 			this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);

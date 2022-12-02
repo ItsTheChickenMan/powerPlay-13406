@@ -100,9 +100,9 @@ public class AbeBot {
 	private Vector3D aimAtPoint;
 
 	// activity of each aim component
-	private boolean doDriveAim;
-	private boolean doElbowAim;
-	private boolean doSlidesAim;
+	private boolean doDriveAim = true;
+	private boolean doElbowAim = false;
+	private boolean doSlidesAim = false;
 
 	/**
 	 * @brief Constructor
@@ -166,13 +166,13 @@ public class AbeBot {
 		this.doElbowAim = doElbow;
 		this.doSlidesAim = doSlides;
 
-		this.drive.aimAt(z, x);
+		this.drive.aimAtPoint(x, z);
 
 		this.aimAtPoint = new Vector3D(x, y, z);
 	}
 
 	/**
-	 * @brief make Abe aim himself at a point with the arm and the drivetrain
+	 * @brief make Abe aim himself at a point relative to the starting point with the arm and the drivetrain
 	 *
 	 * @param x
 	 * @param y
@@ -191,16 +191,16 @@ public class AbeBot {
 		Pose2d pose = this.drive.getPoseEstimate();
 
 		// make drive aim at point
-		this.drive.aimAt(z - pose.getY(), x - pose.getX());
+		this.drive.aimAtPoint(x - pose.getX(), z - pose.getY());
 
 		// save point
-		this.aimAtPoint = new Vector3D(x - pose.getY(), y, z - pose.getX());
+		this.aimAtPoint = new Vector3D(x - pose.getX(), y, z - pose.getY());
 	}
 
 	public void clearPoint(){
 		this.aimAtPoint = null;
 
-		this.drive.clearPoint();
+		this.drive.clearAim();
 
 		// TODO: why does this have different name
 		this.arm.clearAim();
@@ -212,16 +212,14 @@ public class AbeBot {
 
 	public void update(){
 		// update drive
-		if(this.doDriveAim) {
-			this.drive.update();
-		}
+		this.drive.update(!doDriveAim);
 
 		// update arm
 		if(this.isAiming()) {
 			Pose2d pose = this.drive.getPoseEstimate();
 
-			double offsetX = pose.getX() - this.aimAtPoint.getZ();
-			double offsetZ = pose.getY() - this.aimAtPoint.getX();
+			double offsetX = pose.getX() - this.aimAtPoint.getX();
+			double offsetZ = pose.getY() - this.aimAtPoint.getZ();
 
 			// get arm values and stuff
 			double botDistance2 = offsetX * offsetX + offsetZ * offsetZ;
@@ -233,7 +231,7 @@ public class AbeBot {
 			//AimAtPointTest.globalTelemetry.addData("armDistance", armDistance);
 			//AimAtPointTest.globalTelemetry.addData("armHeight", armHeight);
 
-			this.arm.aimAt(armDistance, armHeight);
+			this.arm.aimAt(armDistance, armHeight, this.doElbowAim, this.doSlidesAim);
 		}
 
 		this.arm.update();

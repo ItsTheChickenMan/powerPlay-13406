@@ -10,7 +10,6 @@ Grab stage (g1):
 
 Aim stage (g2):
     ~Joystick for aiming
-    ~Single button for "locking" to a junction (note: single status LED on bot to indicate status in these scenarios?)
     ~Button/Trigger for extending to junction
     ~Button for depositing
     -Joystick for tuning (should only be allowed during extension)

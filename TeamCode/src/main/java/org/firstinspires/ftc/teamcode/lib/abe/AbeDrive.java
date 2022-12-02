@@ -10,14 +10,19 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
 
-import java.util.Vector;
-
 /**
  * @brief Drive that is specifically designed for versions of Abe during Power Play
  *
  * Mostly works off of the RR SampleMecanumDrive class, but includes utilities to make it work for the stuff we need it for
  */
 public class AbeDrive {
+	// ENUMS //
+	public static enum AimMode {
+		NONE,
+		POINT,
+		ANGLE
+	}
+
 	private SampleMecanumDrive drive;
 
 	// cumulative powers
@@ -26,9 +31,15 @@ public class AbeDrive {
 	private double backLeftPower;
 	private double backRightPower;
 
-	// point being aimed at currently, or null if no point
+	// current aim mode
+	private AimMode aimMode = AimMode.NONE;
+
+	// point being aimed at currently, if mode is POINT
 	// FIXME: probably should switch to apache vectors
 	private Vector2d aimAtPoint;
+
+	// angle being aimed at currently, if mode is ANGLE
+	private double aimAtAngle;
 
 	// PID stuff
 	private double aim_p;
@@ -54,8 +65,8 @@ public class AbeDrive {
 		this.aim_i = aim_i;
 		this.aim_d = aim_d;
 
-		// no init point
-		this.aimAtPoint = null;
+		// no aim initially
+		this.aimMode = AimMode.NONE;
 
 		// clear out powers just for fun
 		this.clearCumulativePowers();
@@ -74,10 +85,6 @@ public class AbeDrive {
 			return new Vector2D(this.drive.getPoseEstimate().getX(), this.drive.getPoseEstimate().getY());
 	}
 
-	public Vector2D getPoseEstimateAsRegularVector(){
-		return new Vector2D( -this.drive.getPoseEstimate().getY(),  this.drive.getPoseEstimate().getX());
-	}
-
 	/**
 	 * @brief Set the pose estimate for the drive train,
 	 *
@@ -87,7 +94,7 @@ public class AbeDrive {
 	 */
 	public void setPoseEstimate(double x, double y, double rotation){
 		this.drive.setPoseEstimate(new Pose2d(
-
+			x, y, rotation
 		));
 	}
 
@@ -101,7 +108,7 @@ public class AbeDrive {
 	 * @return true if it is, false if it isn't
 	 */
 	public boolean isAiming(){
-		return this.aimAtPoint != null;
+		return this.aimMode != AimMode.NONE;
 	}
 
 	/**
@@ -114,15 +121,47 @@ public class AbeDrive {
 	 * @param x x value for point to aim at
 	 * @parma y y value for point to aim at
 	 */
-	public void aimAt(double x, double y){
+	public void aimAtPoint(double x, double y){
+		this.aimMode = AimMode.POINT;
+
 		this.aimAtPoint = new Vector2d(x, y);
 	}
 
 	/**
-	 * @brief clears the current aim at point, so no point is left
+	 * @brief aim at an angle, in degrees
+	 *
+	 * @param angle
 	 */
-	public void clearPoint(){
-		this.aimAtPoint = null;
+	public void aimAtAngleDegrees(double angle){
+		this.aimAtAngleRadians(Math.toRadians(angle));
+	}
+
+	/**
+	 * @brief aim at an angle, in radians
+	 *
+	 * @param angle
+	 */
+	public void aimAtAngleRadians(double angle){
+		this.aimMode = AimMode.ANGLE;
+
+		this.aimAtAngle = angle;
+	}
+
+	/**
+	 * @brief locks the drive's rotation onto its current heading until another call to an aimAt method or clearAim
+	 */
+	public void aimAtCurrentAngle(){
+		// fetch angle from current pose
+		double rotation = this.drive.getPoseEstimate().getHeading();
+
+		this.aimAtAngleRadians(rotation);
+	}
+
+	/**
+	 * @brief clears current aim, despite mode
+	 */
+	public void clearAim(){
+		this.aimMode = AimMode.NONE;
 	}
 
 	/**
@@ -208,9 +247,18 @@ public class AbeDrive {
 	}
 
 	/**
-	 * @brief Update drivetrain odometry and point being aimed at
+	 * @brief Update drivetrain odometry and point/angle being aimed at
 	 */
 	public void update(){
+		this.update(false);
+	}
+
+	/**
+	 * @brief Update drivetrain odometry and point/angle being aimed at
+	 *
+	 * @param dontDoAim if true, doesn't do aim despite the current setting
+	 */
+	public void update(boolean dontDoAim){
 		// update odometry
 		this.drive.update();
 
@@ -222,55 +270,51 @@ public class AbeDrive {
 		Vector2d coords = pose.vec();
 		double heading = pose.getHeading();
 
-		if(this.isAiming()){
-			Vector2d offset = coords.minus(this.aimAtPoint);
+		if(this.isAiming() && !dontDoAim){
+			double desiredAngle = 0;
 
-			double distance = offset.norm();
+			if(this.aimMode == AimMode.POINT) {
+				Vector2d offset = coords.minus(this.aimAtPoint);
 
-			if(distance != 0.0) {
-				// get currently desired angle
-				double desiredAngle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
-				desiredAngle += Math.PI;
+				double distance = offset.norm();
 
-				// pid
-				// TODO: abstract into class/borrow a better implementation from somewhere
-
-				// get error
-				double error = -AngleHelper.angularDistanceRadians(heading, desiredAngle);
-
-				// get error derivative
-				double derivative = (error - this.lastError) / delta;
-
-				// save error
-				this.lastError = error;
-
-				// add to integral
-				if(!Double.isNaN(error)) this.totalError += error*delta;
-
-				// calculate rotation power
-				double rotation = error*this.aim_p + derivative*this.aim_d + this.totalError*this.aim_i;
-
-				double maxRotation = 0.5;
-
-				//rotation = Math.max(Math.min(rotation, maxRotation), -maxRotation);
-
-				/*telemetry.addData("rotation", rotation);
-				telemetry.addData("heading", heading);
-				telemetry.addData("desiredAngle", desiredAngle);
-				telemetry.addData("delta", delta);
-				telemetry.addData("distance", distance);
-				telemetry.addData("error", error);
-				telemetry.addData("derivative", derivative);
-				telemetry.addData("totalError", this.totalError);
-				telemetry.update();*/
-
-				if(!Double.isNaN(rotation)) {
-					// add rotation to cumulative powers
-					this.frontLeftPower += rotation;
-					this.frontRightPower -= rotation;
-					this.backLeftPower += rotation;
-					this.backRightPower -= rotation;
+				if (distance != 0.0) {
+					// get currently desired angle
+					desiredAngle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
+					desiredAngle += Math.PI;
 				}
+			} else if(this.aimMode == AimMode.ANGLE){
+				desiredAngle = this.aimAtAngle;
+			}
+
+			// pid
+			// TODO: abstract into class/borrow a better implementation from somewhere
+
+			// get error
+			double error = -AngleHelper.angularDistanceRadians(heading, desiredAngle);
+
+			// get error derivative
+			double derivative = (error - this.lastError) / delta;
+
+			// save error
+			this.lastError = error;
+
+			// add to integral
+			if (!Double.isNaN(error)) this.totalError += error * delta;
+
+			// calculate rotation power
+			double rotation = error * this.aim_p + derivative * this.aim_d + this.totalError * this.aim_i;
+
+			// FIXME: remove this hack
+			double maxRotation = 0.5;
+			rotation = Math.max(Math.min(rotation, maxRotation), -maxRotation);
+
+			if (!Double.isNaN(rotation)) {
+				// add rotation to cumulative powers
+				this.frontLeftPower += rotation;
+				this.frontRightPower -= rotation;
+				this.backLeftPower += rotation;
+				this.backRightPower -= rotation;
 			}
 		}
 

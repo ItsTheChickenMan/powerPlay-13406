@@ -4,14 +4,18 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeTeleOp;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
 @TeleOp
 public class AbeAutomatic extends AbeTeleOp {
     @Override
     public void runOpMode() throws InterruptedException {
-        initializeAbe();
+        GlobalStorage.globalTelemetry = telemetry;
 
-        setStartPoint(108.0, 8.5, 0);
+        setup();
+
+        // note: roadrunner coordinates
+        setStartPoint(8.5, 36, 0);
 
         waitForStart();
 
@@ -19,11 +23,13 @@ public class AbeAutomatic extends AbeTeleOp {
             // drive stuff
             double forward = -gamepad1.left_stick_y;
             double strafe = gamepad1.left_stick_x;
-            double speed = 1.3 - gamepad1.right_trigger;
+            double speed = (1.2 - gamepad1.right_trigger)*0.5;
 
             this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
 
             update();
+
+            telemetry.update();
         }
     }
 }

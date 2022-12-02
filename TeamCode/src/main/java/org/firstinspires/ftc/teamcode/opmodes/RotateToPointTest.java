@@ -27,7 +27,7 @@ public class RotateToPointTest extends LinearOpMode {
 
 		waitForStart();
 
-		this.abe.drive.aimAt(24, 0);
+		this.abe.drive.aimAtPoint(24, 0);
 
 		while(opModeIsActive()){
 			double forward = -gamepad1.left_stick_y;

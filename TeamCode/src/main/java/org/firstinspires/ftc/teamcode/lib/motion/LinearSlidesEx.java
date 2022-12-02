@@ -80,6 +80,9 @@ public class LinearSlidesEx {
 
 	public void setVelocity(double velocity){
 		// FIXME: implement
+		for(LinearSlides slide : this.slides){
+			slide.setVelocity(velocity);
+		}
 	}
 
 	public void checkForBadExtension(){

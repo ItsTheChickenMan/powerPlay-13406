@@ -9,6 +9,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.opmodes.AimAtPointTest;
 import org.firstinspires.ftc.teamcode.opmodes.ArmStressTest;
 
@@ -80,24 +81,6 @@ public class AbeArm {
 						x*x + y*y - AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES
 		);
 
-		//ArmStressTest.globalTelemetry.addData("slides", this.aimSlidesLength);
-
-		//double temp = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
-
-		// account for sagging (better word for this than "falloff" but too late now)
-		/*if(accountForFalloff) {
-			// determine height falloff counter
-			// we use height for predicted falloff because it's easier to measure physically
-			// this gets applied to y before it gets fed into the angle, and only the angle (slides length calculated normally)
-			//double falloffPrediction = AbeConstants.getExpectedHeightFalloff(this.aimSlidesLength) * Math.cos(temp);
-
-			//y += falloffPrediction;
-
-			this.aimElbowAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
-		} else {
-			this.aimElbowAngle = temp;
-		}*/
-
 		// set elbow angle
 		this.aimElbowAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
 
@@ -110,9 +93,6 @@ public class AbeArm {
 		this.positionWristRadians(-falloffCounter);
 
 		this.aimElbowAngle += falloffCounter;
-
-		// we don't use this because I forgot that the LinearSlides class already accounts for the offset and just extends to the length it's told
-		//this.aimSlidesLength -= AbeConstants.SLIDE_OFFSET_INCHES;
 
 		//this.isAiming = false;
 		this.isAiming = true;
@@ -334,7 +314,18 @@ public class AbeArm {
 	 * @brief Adjust the wrist's angle for the elbow's angle
 	 */
 	public void updateWrist(){
-		this.wrist.rotateToDegrees( -this.wrist.getMaxRangeDegrees()/2. + this.elbow.getAngleDegrees() + this.wristAngle);
+		/*GlobalStorage.globalTelemetry.addData("wristAngle", this.wristAngle);
+		GlobalStorage.globalTelemetry.addData("wrist max range", this.wrist.getMaxRangeDegrees());
+		GlobalStorage.globalTelemetry.addData("elbow angle", this.elbow.getAngleDegrees());
+		GlobalStorage.globalTelemetry.update();*/
+
+		// this is hacky, but I don't have time to fix this problem at the source
+		// sometimes, the wrist angle will be set to NaN by aimAt
+		if(Double.isNaN(this.wristAngle)) {
+			this.wrist.rotateToDegrees(-this.wrist.getMaxRangeDegrees() / 2. + this.elbow.getAngleDegrees());
+		} else {
+			this.wrist.rotateToDegrees(-this.wrist.getMaxRangeDegrees() / 2. + this.elbow.getAngleDegrees() + this.wristAngle);
+		}
 	}
 
 	/**
@@ -345,7 +336,12 @@ public class AbeArm {
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// FIXME: allow velocity to be set by programmer
 			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
-			if(this.doSlidesAim) this.slides.extendTo(this.aimSlidesLength, 10.0);
+
+			if(this.doSlidesAim){
+				this.slides.extendTo(this.aimSlidesLength, 10.0);
+			} else {
+				this.slides.extendTo(AbeConstants.SLIDE_BASE_LENGTH_INCHES + 3, 15.0);
+			}
 		}
 
 		// check elbow

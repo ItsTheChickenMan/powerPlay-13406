@@ -38,6 +38,16 @@ public abstract class AbeOpMode extends LinearOpMode {
 	}
 
 	/**
+	 * @brief returns true if an event is currently scheduled to occur at some point, otherwise false
+	 *
+	 * @param scheduledTime
+	 * @return true if scheduled, false if not
+	 */
+	public boolean isEventScheduled(double scheduledTime){
+		return scheduledTime != UNSCHEDULED;
+	}
+
+	/**
 	 * @brief Log an error to telemetry and freeze the program until stopped
 	 */
 	public void logError(String errorMessage){
@@ -47,6 +57,15 @@ public abstract class AbeOpMode extends LinearOpMode {
 		while(!isStopRequested());
 	}
 
+	/**
+	 * @brief set the starting point of the robot, in roadrunner coordinates
+	 *
+	 * Normally, the bot's coordinates begin at 0, 0 with a rotation of 0.  this allows you to set an offset for them
+	 *
+	 * @param x x offset, in roadrunner coords
+	 * @param y y offset, in roadrunner coords
+	 * @param r rotation, in radians
+	 */
 	public void setStartPoint(double x, double y, double r){
 		this.abe.setPoseEstimate(x, y, r);
 	}
@@ -55,12 +74,14 @@ public abstract class AbeOpMode extends LinearOpMode {
 		// get height
 		double height = JunctionHelper.getJunctionHeightFromRaw(x, y) + AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
 
+		if(height == 0.0) return;
+
 		// get real x and y
 		double[] coords = JunctionHelper.snappedToRaw(JunctionHelper.rawToSnapped(x, y)); // TODO: I hate this
 		double rx = coords[0];
 		double ry = coords[1];
 
-		this.abe.aimAt(x, height, ry, doDrive, doElbow, doSlides);
+		this.abe.aimAt(rx, height, ry, doDrive, doElbow, doSlides);
 	}
 
 	public void aimAtJunctionRaw(double x, double y){
@@ -70,6 +91,8 @@ public abstract class AbeOpMode extends LinearOpMode {
 	public void aimAtJunction(int x, int y, boolean doDrive, boolean doElbow, boolean doSlides){
 		// get height
 		double height = JunctionHelper.getJunctionHeight(x, y) + AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
+
+		if(height == 0.0) return;
 
 		// get real x and y
 		double[] coords = JunctionHelper.snappedToRaw(x, y);

@@ -70,6 +70,6 @@ public class AbeConstants {
 	// fingers related... //
 	public static final double FINGERS_MAX_RANGE_DEGREES = 360; // FIXME: update value
 	public static final double FINGERS_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.FINGERS_MAX_RANGE_DEGREES);
-	public static final double FINGERS_CLOSED_POSITION = -135;
-	public static final double FINGERS_OPEN_POSITION = -35;
+	public static final double FINGERS_CLOSED_POSITION = -35;
+	public static final double FINGERS_OPEN_POSITION = -135;
 }

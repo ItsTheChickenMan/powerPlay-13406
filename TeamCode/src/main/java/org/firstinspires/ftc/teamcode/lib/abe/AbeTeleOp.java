@@ -1,8 +1,9 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
-import org.apache.commons.math3.geometry.Vector;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
 /**
  * @brief Abstract class containing required values and methods for using AbeBot during the Teleop period
@@ -18,13 +19,13 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	// STATES n STUFF //
 
 	// what mode are we in?
-	private AbeTeleOp.ControlMode mode = ControlMode.GRABBING;
+	private AbeTeleOp.ControlMode controlMode = ControlMode.GRABBING;
 
 	// "chosen" junction point
-	private Vector2D chosenJunction;
+	private Vector2D chosenJunction = new Vector2D(0, 0);
 
-	// are we locked onto a junction currently?
-	private boolean lockedOnJunction = false;
+	// are we extending, or no?
+	private boolean extending = false;
 
 	// SPECIFICALLY CONTROLLER STATES //
 	private boolean g2ALastPressed = false;
@@ -42,38 +43,67 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	// METHODS //
 
+	public void setup(){
+		initializeAbe();
+
+		// setup a specific mode
+		if(this.controlMode == ControlMode.GRABBING){
+			this.setupGrabbingMode();
+		} else if(this.controlMode == ControlMode.AIMING){
+			this.setupAimingMode();
+		}
+	}
+
 	/**
 	 * @brief set the current control mode
 	 *
 	 * @param mode
 	 */
 	public void setMode(AbeTeleOp.ControlMode mode){
-		this.mode = mode;
+		this.controlMode = mode;
 	}
 
 	public void checkJunctionAim(){
 		// get aim vector
-		double distance = 12.0;
+		double distance = 6.0;
 
-		Vector2D desiredAimVector = new Vector2D(gamepad2.left_stick_x, -gamepad2.left_stick_y);
+		Vector2D desiredAimVector = new Vector2D(-gamepad2.left_stick_y, -gamepad2.left_stick_x);
+
+		if(desiredAimVector.getNorm() < 0.25){
+			return;
+		}
 
 		Vector2D aimVector = desiredAimVector.scalarMultiply(distance);
 
-		Vector2D chooseVector = abe.drive.getPoseEstimateAsRegularVector().add(aimVector);
+		Vector2D chooseVector = abe.drive.getPoseEstimateAsVector().add(aimVector);
 
 		this.chosenJunction = chooseVector;
 	}
 
-	public void cleanupAimMode(){
-		// clear the aim point
-		this.abe.clearPoint();
+	public void setupAimingMode(){
+		// ensure clamped
+		this.abe.arm.clampFingers();
+	}
 
-		// unlock
-		this.lockedOnJunction = false;
+	public void setupGrabbingMode(){
+		// ensure unclamped
+		this.abe.arm.unclampFingers();
 
 		// move the arm to a good grabbing position
 		// FIXME: add to AbeConstants
-		this.abe.arm.aimAt(20, 6.5);
+		this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
+	}
+
+	public void cleanupAimingMode(){
+		// clear the aim point
+		this.abe.clearPoint();
+
+		// tell drive to lock current orientation
+		this.abe.drive.aimAtCurrentAngle();
+	}
+
+	public void cleanupGrabbingMode(){
+		// just here if I need it...
 	}
 
 	public void updateControllerStates(){
@@ -83,23 +113,21 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	public void update(){
 		// different process depending on mode
-		switch(this.mode){
+		switch(this.controlMode){
 
 			case AIMING: {
+				// determine current aim state (which part(s) of the arm are active?)
+				this.extending = gamepad2.left_trigger > 0.05; // TODO: adjustable slide length based on strength of trigger?
+
 				// check junction being aimed at
-				if(!this.lockedOnJunction) {
+				if(!this.extending) {
 					this.checkJunctionAim();
 				}
 
-				// check if we should lock onto the current junction
-				if(gamepad2.b && !this.g2BLastPressed){
-					this.lockedOnJunction = !this.lockedOnJunction;
-				}
+				GlobalStorage.globalTelemetry.addData("x", this.chosenJunction.getX());
+				GlobalStorage.globalTelemetry.addData("y", this.chosenJunction.getY());
 
-				// determine current aim state (which part(s) of the arm are active?)
-				boolean extendSlides = gamepad2.left_trigger > 0.05; // TODO: adjustable slide length based on strength of trigger?
-
-				aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, extendSlides);
+				aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending && !isEventScheduled(this.switchModeSchedule));
 
 				// check for deposit request
 				if(gamepad2.a){
@@ -107,7 +135,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.arm.unclampFingers();
 
 					// schedule mode switch
-					this.switchModeSchedule = getScheduledTime(0.5);
+					this.switchModeSchedule = getScheduledTime(1.0);
 				}
 
 				// check if mode switch has been requested
@@ -115,11 +143,12 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					// unschedule the switch
 					this.switchModeSchedule = UNSCHEDULED;
 
-					// do a bit of cleanup before we switch
-					this.cleanupAimMode();
+					// cleanup + setup
+					this.cleanupAimingMode();
+					this.setupGrabbingMode();
 
 					// switch modes
-					this.mode = ControlMode.GRABBING;
+					this.controlMode = ControlMode.GRABBING;
 				}
 
 				break;
@@ -127,11 +156,19 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 			case GRABBING: {
 				// do drive train aim
-				Vector2D aimVector = new Vector2D(-gamepad1.right_stick_y, gamepad1.right_stick_x);
+				// could probably just use atan2 here?  not urgent but it's something to note
+				Vector2d aimVector = new Vector2d(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
+				double heading = aimVector.angle();
+
+				// move drive to selected angle, otherwise maintain current angle
+				if(aimVector.norm() > 0.5) {
+					this.abe.drive.aimAtAngleRadians(heading);
+				} else {
+					this.abe.drive.aimAtCurrentAngle();
+				}
 
 				// check for grab
 				if(gamepad2.a){
-					// clamp fingies
 					this.abe.arm.clampFingers();
 
 					// schedule mode switch in half a second
@@ -143,8 +180,12 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					// unschedule the switch
 					this.switchModeSchedule = UNSCHEDULED;
 
+					// cleanup + setup
+					this.cleanupGrabbingMode();
+					this.setupAimingMode();
+
 					// switch modes
-					this.mode = ControlMode.AIMING;
+					this.controlMode = ControlMode.AIMING;
 				}
 			}
 		}
