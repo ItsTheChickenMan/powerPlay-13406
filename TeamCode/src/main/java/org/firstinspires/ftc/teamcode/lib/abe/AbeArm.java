@@ -338,9 +338,9 @@ public class AbeArm {
 			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
 
 			if(this.doSlidesAim){
-				this.slides.extendTo(this.aimSlidesLength, 10.0);
+				this.slides.extendTo(this.aimSlidesLength, 20.0);
 			} else {
-				this.slides.extendTo(AbeConstants.SLIDE_BASE_LENGTH_INCHES + 3, 15.0);
+				this.slides.extendTo(AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75, 20.0);
 			}
 		}
 

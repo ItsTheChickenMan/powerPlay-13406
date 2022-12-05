@@ -2,12 +2,14 @@ package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
 
 /**
@@ -16,20 +18,21 @@ import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
  * Mostly works off of the RR SampleMecanumDrive class, but includes utilities to make it work for the stuff we need it for
  */
 public class AbeDrive {
-	// ENUMS //
+	// enum for current aiming system that the drive train is using
 	public static enum AimMode {
 		NONE,
 		POINT,
 		ANGLE
 	}
 
+	// rr interface
 	private SampleMecanumDrive drive;
 
 	// cumulative powers
-	private double frontLeftPower;
-	private double frontRightPower;
-	private double backLeftPower;
-	private double backRightPower;
+	private double frontLeftVelocity;
+	private double frontRightVelocity;
+	private double backLeftVelocity;
+	private double backRightVelocity;
 
 	// current aim mode
 	private AimMode aimMode = AimMode.NONE;
@@ -46,15 +49,27 @@ public class AbeDrive {
 	private double aim_i;
 	private double aim_d;
 
+	// delta settings
 	private double lastError = 0;
 	private double totalError = 0;
 
 	private ElapsedTime deltaTimer;
 
+	// position offset
+	// I would just set the pose estimate of the RR drive class, but doing so causes the drivetrain to spin in teleop for some reason that's probably out of my control, so I'm doing this instead
+	private double positionXOffset = 0;
+	private double positionYOffset = 0;
+
 	// other settings
 	private double armOffset;
 
-	public AbeDrive(HardwareMap hardwareMap, double armOffset, double aim_p, double aim_i, double aim_d){
+	private double gearRatio;
+	private double tickRatio;
+	private double wheelCircumference;
+
+	private double maxVelocity;
+
+	public AbeDrive(HardwareMap hardwareMap, double armOffset, double gearRatio, double tickRatio, double wheelCircumference, double maxVelocity, double aim_p, double aim_i, double aim_d){
 		this.drive = new SampleMecanumDrive(hardwareMap);
 		this.deltaTimer = new ElapsedTime();
 
@@ -65,11 +80,50 @@ public class AbeDrive {
 		this.aim_i = aim_i;
 		this.aim_d = aim_d;
 
+		this.gearRatio = gearRatio;
+		this.tickRatio = tickRatio;
+		this.wheelCircumference = wheelCircumference;
+		this.maxVelocity = maxVelocity;
+
 		// no aim initially
 		this.aimMode = AimMode.NONE;
 
 		// clear out powers just for fun
-		this.clearCumulativePowers();
+		this.clearCumulativeVelocities();
+	}
+
+	/**
+	 * @brief Returns the amount of inches that the drive train is expected to travel, not accounting for traction, if all wheels were to move a certain number of ticks
+	 *
+	 * @param ticks
+	 * @return
+	 */
+	public double tickToInches(double ticks){
+		// convert ticks to rotations
+		double rotations = ticks / this.tickRatio;
+
+		// convert driver gear rotations to driven gear rotations
+		rotations *= this.gearRatio;
+
+		// convert rotations to inches travelled
+		return rotations * this.wheelCircumference;
+	}
+
+	/**
+	 * @brief Returns the amount of ticks that the drive train is expected to need to travel a certain number of inches, not accounting for traction
+	 *
+	 * @param inches
+	 * @return
+	 */
+	public double inchesToTicks(double inches){
+		// convert inches to rotations
+		double rotations = inches / this.wheelCircumference;
+
+		// convert driven gear rotations to driver gear rotations
+		rotations /= this.gearRatio;
+
+		// convert rotations to ticks
+		return rotations * this.tickRatio;
 	}
 
 	/**
@@ -78,15 +132,17 @@ public class AbeDrive {
 	 * @return current pose estimate (see RR docs)
 	 */
 	public Pose2d getPoseEstimate(){
-		return this.drive.getPoseEstimate();
+		Pose2d offset = new Pose2d(this.positionXOffset, this.positionYOffset);
+
+		return offset.plus(this.drive.getPoseEstimate());
 	}
 
 	public Vector2D getPoseEstimateAsVector(){
-			return new Vector2D(this.drive.getPoseEstimate().getX(), this.drive.getPoseEstimate().getY());
+			return new Vector2D(this.getPoseEstimate().getX(), this.getPoseEstimate().getY());
 	}
 
 	/**
-	 * @brief Set the pose estimate for the drive train,
+	 * @brief Set the pose estimate for the drive train, without affecting the position offsets
 	 *
 	 * @param x
 	 * @param y
@@ -100,6 +156,32 @@ public class AbeDrive {
 
 	public void setPoseEstimate(Pose2d pose){
 		this.drive.setPoseEstimate(pose);
+	}
+
+	public void setPositionXOffset(double x){
+		this.positionXOffset = x;
+	}
+
+	public void setPositionYOffset(double y){
+		this.positionYOffset = y;
+	}
+
+	public void addToPositionXOffset(double x){
+		this.positionXOffset += x;
+	}
+
+	public void addToPositionYOffset(double y){
+		this.positionYOffset += y;
+	}
+
+	public void setOffset(double x, double y){
+		this.positionXOffset = x;
+		this.positionYOffset = y;
+	}
+
+	public void addToOffset(double x, double y){
+		this.addToPositionXOffset(x);
+		this.addToPositionYOffset(y);
 	}
 
 	/**
@@ -164,31 +246,53 @@ public class AbeDrive {
 		this.aimMode = AimMode.NONE;
 	}
 
-	/**
-	 * @brief Mirror for SampleMecanumDrive setMotorPowers, but uses parameter order that's better IMO
-	 *
-	 */
-	private void setMotorPowers(double frontLeft, double frontRight, double backLeft, double backRight){
-		this.drive.setMotorPowers(frontLeft, backLeft, backRight, frontRight);
+	public void setModes(DcMotor.RunMode mode){
+		this.drive.leftFront.setMode(mode);
+		this.drive.leftRear.setMode(mode);
+		this.drive.rightFront.setMode(mode);
+		this.drive.rightRear.setMode(mode);
+	}
+
+	private void setMotorVelocities(double frontLeft, double frontRight, double backLeft, double backRight){
+		//this.drive.setMotorPowers(frontLeft, backLeft, backRight, frontRight);
+
+		this.drive.leftFront.setVelocity(frontLeft);
+		this.drive.leftRear.setVelocity(backLeft);
+		this.drive.rightFront.setVelocity(frontRight);
+		this.drive.rightRear.setVelocity(backRight);
+	}
+
+	private void setCumulativeVelocities(double frontLeft, double frontRight, double backLeft, double backRight){
+		this.frontLeftVelocity = inchesToTicks(frontLeft);
+		this.frontRightVelocity = inchesToTicks(frontRight);
+		this.backLeftVelocity = inchesToTicks(backLeft);
+		this.backRightVelocity = inchesToTicks(backRight);
+	}
+
+	private void addToCumulativeVelocities(double frontLeft, double frontRight, double backLeft, double backRight){
+		this.frontLeftVelocity += inchesToTicks(frontLeft);
+		this.frontRightVelocity += inchesToTicks(frontRight);
+		this.backLeftVelocity += inchesToTicks(backLeft);
+		this.backRightVelocity += inchesToTicks(backRight);
 	}
 
 	/**
 	 * @brief Clears out the currently accumulated powers.  does not set the powers to the motor; that's what flushCumulativePowers is for
 	 */
-	private void clearCumulativePowers(){
-		this.frontLeftPower = 0;
-		this.frontRightPower = 0;
-		this.backLeftPower = 0;
-		this.backRightPower = 0;
+	private void clearCumulativeVelocities(){
+		this.frontLeftVelocity = 0;
+		this.frontRightVelocity = 0;
+		this.backLeftVelocity = 0;
+		this.backRightVelocity = 0;
 	}
 
 	/**
 	 * @brief Flushes out the accumulated powers to the motors
 	 */
-	private void flushCumulativePowers(){
-		this.setMotorPowers(this.frontLeftPower, this.frontRightPower, this.backLeftPower, this.backRightPower);
+	private void flushCumulativeVelocities(){
+		this.setMotorVelocities(this.frontLeftVelocity, this.frontRightVelocity, this.backLeftVelocity, this.backRightVelocity);
 
-		this.clearCumulativePowers();
+		this.clearCumulativeVelocities();
 	}
 
 	/**
@@ -203,8 +307,9 @@ public class AbeDrive {
 	 */
 	public void driveFieldOriented(double forward, double strafe){
 		// clamp values
-		forward = Math.min(Math.max(forward, -1.0), 1.0);
-		strafe = Math.min(Math.max(strafe, -1.0), 1.0);
+		// technically doesn't work because the total velocity will exceed max velocity if forward and strafe are both equal to max velocity, but this will never matter when using direct controller inputs (which are already normalized)
+		forward = Math.min(Math.max(forward, -this.maxVelocity), this.maxVelocity);
+		strafe = Math.min(Math.max(strafe, -this.maxVelocity), this.maxVelocity);
 
 		// convert to vector
 		// TODO: should probably switch to RR vectors
@@ -222,27 +327,37 @@ public class AbeDrive {
 		strafe = driveVec.x;
 
 		// assign powers
-		this.frontLeftPower += forward + strafe;
-		this.frontRightPower += forward - strafe;
-		this.backLeftPower += forward - strafe;
-		this.backRightPower += forward + strafe;
+		this.addToCumulativeVelocities(forward + strafe, forward - strafe, forward - strafe, forward + strafe);
+
+		/*this.frontLeftVelocity += inchesToTicks(forward + strafe);
+		this.frontRightVelocity += inchesToTicks(forward - strafe);
+		this.backLeftVelocity += inchesToTicks(forward - strafe);
+		this.backRightVelocity += inchesToTicks(forward + strafe);*/
 	}
 
+	/**
+	 * This is a little unintuitive.  Best to just guess+check the best values here.
+	 *
+	 * @param rotation
+	 */
 	public void rotate(double rotation){
-		this.frontLeftPower += rotation;
-		this.frontRightPower -= rotation;
-		this.backLeftPower += rotation;
-		this.backRightPower -= rotation;
+		this.addToCumulativeVelocities(rotation, -rotation, rotation, -rotation);
+
+		/*this.frontLeftVelocity += inchesToTicks(rotation);
+		this.frontRightVelocity -= inchesToTicks(rotation);
+		this.backLeftVelocity += inchesToTicks(rotation);
+		this.backRightVelocity -= inchesToTicks(rotation);*/
 	}
 
 	public void normalizePowers(){
-		double largest = Math.max(this.backRightPower, Math.max(this.backLeftPower, Math.max(this.frontLeftPower, this.frontRightPower)));
+		double largest = Math.max(this.backRightVelocity, Math.max(this.backLeftVelocity, Math.max(this.frontLeftVelocity, this.frontRightVelocity)));
+		double maxVelocityTicks = inchesToTicks(this.maxVelocity); // TODO: just make a global?
 
-		if(largest > 1.0){
-			this.frontLeftPower /= largest;
-			this.frontRightPower /= largest;
-			this.backLeftPower /= largest;
-			this.backRightPower /= largest;
+		if(largest > maxVelocityTicks){
+			this.frontLeftVelocity *= (maxVelocityTicks / largest);
+			this.frontRightVelocity *= (maxVelocityTicks / largest);
+			this.backLeftVelocity *= (maxVelocityTicks / largest);
+			this.backRightVelocity *= (maxVelocityTicks / largest);
 		}
 	}
 
@@ -266,7 +381,7 @@ public class AbeDrive {
 		double delta = this.deltaTimer.seconds();
 
 		// get current pose
-		Pose2d pose = this.drive.getPoseEstimate();
+		Pose2d pose = this.getPoseEstimate();
 		Vector2d coords = pose.vec();
 		double heading = pose.getHeading();
 
@@ -293,6 +408,9 @@ public class AbeDrive {
 			// get error
 			double error = -AngleHelper.angularDistanceRadians(heading, desiredAngle);
 
+			GlobalStorage.globalTelemetry.addData("error (radians)", error);
+			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
+
 			// get error derivative
 			double derivative = (error - this.lastError) / delta;
 
@@ -306,22 +424,24 @@ public class AbeDrive {
 			double rotation = error * this.aim_p + derivative * this.aim_d + this.totalError * this.aim_i;
 
 			// FIXME: remove this hack
-			double maxRotation = 0.5;
-			rotation = Math.max(Math.min(rotation, maxRotation), -maxRotation);
+			//double maxRotation = 0.5;
+			//rotation = Math.max(Math.min(rotation, maxRotation), -maxRotation);
 
 			if (!Double.isNaN(rotation)) {
 				// add rotation to cumulative powers
-				this.frontLeftPower += rotation;
-				this.frontRightPower -= rotation;
-				this.backLeftPower += rotation;
-				this.backRightPower -= rotation;
+				this.addToCumulativeVelocities(rotation, -rotation, rotation, -rotation);
+
+				/*this.frontLeftVelocity += rotation;
+				this.frontRightVelocity -= rotation;
+				this.backLeftVelocity += rotation;
+				this.backRightVelocity -= rotation;*/
 			}
 		}
 
 		this.normalizePowers();
 
 		// flush powers to motors
-		this.flushCumulativePowers();
+		this.flushCumulativeVelocities();
 
 		// reset delta timer
 		deltaTimer.reset();

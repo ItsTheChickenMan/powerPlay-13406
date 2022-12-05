@@ -1,18 +1,19 @@
 Stages:
 
 Aim stage (g1):
-    -Drive stick
-    -Slow stick
+    ~Drive stick
+    ~Slow stick
 
 Grab stage (g1):
-    -Drive stick
-    -Slow stick
+    ~Drive stick
+    ~Rotate stick
+    ~Slow stick
 
 Aim stage (g2):
     ~Joystick for aiming
     ~Button/Trigger for extending to junction
     ~Button for depositing
-    -Joystick for tuning (should only be allowed during extension)
+    ~Joystick for tuning (should only be allowed during extension)
     -Something for height adjustment? Need a system to possibly "score on top" of other bots
         -Possibly a button that toggles between low and high (low being normal height of keeping cone bottom ~1 inch from top of pole, and high keeping it ~6 inches from top of pole)
 

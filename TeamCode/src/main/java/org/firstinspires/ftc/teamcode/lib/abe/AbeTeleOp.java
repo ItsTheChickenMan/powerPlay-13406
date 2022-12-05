@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -22,7 +23,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	private AbeTeleOp.ControlMode controlMode = ControlMode.GRABBING;
 
 	// "chosen" junction point
-	private Vector2D chosenJunction = new Vector2D(0, 0);
+	private Vector2D chosenJunction = null;
 
 	// are we extending, or no?
 	private boolean extending = false;
@@ -65,11 +66,11 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	public void checkJunctionAim(){
 		// get aim vector
-		double distance = 6.0;
+		double distance = 12.0;
 
 		Vector2D desiredAimVector = new Vector2D(-gamepad2.left_stick_y, -gamepad2.left_stick_x);
 
-		if(desiredAimVector.getNorm() < 0.25){
+		if(desiredAimVector.getNorm() < 0.75){
 			return;
 		}
 
@@ -91,7 +92,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 		// move the arm to a good grabbing position
 		// FIXME: add to AbeConstants
-		this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
+		//this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 	}
 
 	public void cleanupAimingMode(){
@@ -112,6 +113,11 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	}
 
 	public void update(){
+		// update delta
+		this.updateDelta();
+
+		double delta = this.getDelta();
+
 		// different process depending on mode
 		switch(this.controlMode){
 
@@ -124,10 +130,22 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.checkJunctionAim();
 				}
 
-				GlobalStorage.globalTelemetry.addData("x", this.chosenJunction.getX());
-				GlobalStorage.globalTelemetry.addData("y", this.chosenJunction.getY());
+				// check for correction
+				// TODO: add correction rate to constants
+				double correctionRate = 3; // in inches / second
 
-				aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending && !isEventScheduled(this.switchModeSchedule));
+				Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
+
+				if(poseCorrection.getNorm() > 0.05 && this.extending){
+					this.abe.drive.addToOffset(poseCorrection.getX(), poseCorrection.getY());
+				}
+
+				//GlobalStorage.globalTelemetry.addData("x", this.chosenJunction.getX());
+				//GlobalStorage.globalTelemetry.addData("y", this.chosenJunction.getY());
+
+				if(this.chosenJunction != null) {
+					this.aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending && !isEventScheduled(this.switchModeSchedule));
+				}
 
 				// check for deposit request
 				if(gamepad2.a){
@@ -163,8 +181,12 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				// move drive to selected angle, otherwise maintain current angle
 				if(aimVector.norm() > 0.5) {
 					this.abe.drive.aimAtAngleRadians(heading);
+				}
+
+				if(gamepad2.left_trigger > 0.05){
+					this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 				} else {
-					this.abe.drive.aimAtCurrentAngle();
+					this.abe.arm.aimAt(6, 20);
 				}
 
 				// check for grab

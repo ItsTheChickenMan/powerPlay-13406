@@ -14,8 +14,23 @@ public abstract class AbeOpMode extends LinearOpMode {
 	// abe bot
 	protected AbeBot abe;
 
+	// event scheduling
 	protected ElapsedTime timer = new ElapsedTime();
 	public static final double UNSCHEDULED = 999999999999999.; // this is hacky, but I love it
+
+	// delta calc
+	private double lastTime;
+	private double delta;
+
+	public double getDelta(){
+		return delta;
+	}
+
+	public void updateDelta(){
+		double curTime = timer.seconds();
+		this.delta = curTime - this.lastTime;
+		this.lastTime = curTime;
+	}
 
 	/**
 	 * @brief Returns the current time + after, used for scheduling timed events

@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 
 /**
@@ -8,17 +7,18 @@ import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
  *
  * There is no point in constructing this class, as every member of it should be static.
  *
- * Names should be very self-documenting (but not overly lengthy)
+ * Names should be very self-documenting
  */
 public class AbeConstants {
 	// drive related... //
 	public static final double DRIVE_GEAR_RATIO = 1; // 1:1
 	public static final double DRIVE_TICK_RATIO = 384.5; // 384.5 ticks/rotation
-	public static final double DRIVE_WHEEL_RADIUS_INCHES = 1.88976378;
+	public static final double DRIVE_WHEEL_CIRCUMFERENCE_INCHES = 1.88976378 * Math.PI * 2;
+	public static final double DRIVE_MAX_VELOCITY = 36; // inches/second
 
-	public static final double AIM_P_CONSTANT = 1.0; // 0.75
-	public static final double AIM_I_CONSTANT = 0.0; // idk whatever
-	public static final double AIM_D_CONSTANT = 0.035; // 0.025
+	public static final double DRIVE_AIM_P_CONSTANT = 200;
+	public static final double DRIVE_AIM_I_CONSTANT = 15;
+	public static final double DRIVE_AIM_D_CONSTANT = 11;
 
 	// generally arm related... //
 	public static final double ARM_LATERAL_OFFSET_INCHES = 2.125;
@@ -38,7 +38,7 @@ public class AbeConstants {
 	public static double getExpectedElbowSag(double slideExtension){
 		// approximately linear relationship
 		// determined through testing at zero degrees
-		// works best within a 1.5 tile range, outside of that it tends to fail
+		// works best within a 1.5 tile range, outside of that it tends to fail due to non linearity of sagging at that range
 		return slideExtension*0.0039850756 - 0.0211473332;
 	}
 
@@ -55,7 +55,7 @@ public class AbeConstants {
 	public static final double SLIDE_SPOOL_CIRCUMFERENCE_INCHES = 4.40944882;
 	public static final double SLIDE_BASE_LENGTH_INCHES = 16;
 	public static final double SLIDE_MAX_EXTENSION_INCHES = 38; // leaving off two inches as a just-in-case pillow...
-	public static final double SLIDE_EXTENSION_FACTOR = 1.0875; // slides extend about 1.05 times more than they're told to
+	public static final double SLIDE_EXTENSION_FACTOR = 1.0875; // this could probably just be factored into the circumference, but I've already implemented this so I'm not worried about it
 
 	/**
 	 * @deprecated just adjust the base length instead

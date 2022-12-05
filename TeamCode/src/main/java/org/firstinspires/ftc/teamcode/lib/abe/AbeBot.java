@@ -128,7 +128,7 @@ public class AbeBot {
 		// create drive train
 		// TODO: should we be using AbeConstants in here, or should that be left as a choice for the programmer?
 		//this.drive = new MecanumDrivePlusOdo(this.hardware.frontLeft, this.hardware.frontRight, this.hardware.backLeft, this.hardware.backRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO, AbeConstants.DRIVE_WHEEL_RADIUS_INCHES, this.hardware.imu);
-		this.drive = new AbeDrive(hardwareMap, AbeConstants.ARM_LATERAL_OFFSET_INCHES, AbeConstants.AIM_P_CONSTANT, AbeConstants.AIM_I_CONSTANT, AbeConstants.AIM_D_CONSTANT);
+		this.drive = new AbeDrive(hardwareMap, AbeConstants.ARM_LATERAL_OFFSET_INCHES, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO, AbeConstants.DRIVE_WHEEL_CIRCUMFERENCE_INCHES, AbeConstants.DRIVE_MAX_VELOCITY, AbeConstants.DRIVE_AIM_P_CONSTANT, AbeConstants.DRIVE_AIM_I_CONSTANT, AbeConstants.DRIVE_AIM_D_CONSTANT);
 
 		this.arm = new AbeArm(
 						new AngleAdjuster(this.hardware.elbow, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TICK_RATIO, AbeConstants.ELBOW_LOWER_LIMIT_ROTATIONS, AbeConstants.ELBOW_UPPER_LIMIT_ROTATIONS, this.hardware.elbowLimitSensor),

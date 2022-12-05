@@ -26,7 +26,7 @@ public class MecanumOdometryTest extends LinearOpMode {
 		frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
 		backRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
-		drivePlusOdo = new MecanumDrivePlusOdo(frontLeft, frontRight, backLeft, backRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO, AbeConstants.DRIVE_WHEEL_RADIUS_INCHES, new Imu(imu));
+		drivePlusOdo = new MecanumDrivePlusOdo(frontLeft, frontRight, backLeft, backRight, AbeConstants.DRIVE_GEAR_RATIO, AbeConstants.DRIVE_TICK_RATIO, AbeConstants.DRIVE_WHEEL_CIRCUMFERENCE_INCHES, new Imu(imu));
 
 		waitForStart();
 
