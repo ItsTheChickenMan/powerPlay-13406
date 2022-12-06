@@ -246,11 +246,8 @@ public class AbeDrive {
 		this.aimMode = AimMode.NONE;
 	}
 
-	public void setModes(DcMotor.RunMode mode){
-		this.drive.leftFront.setMode(mode);
-		this.drive.leftRear.setMode(mode);
-		this.drive.rightFront.setMode(mode);
-		this.drive.rightRear.setMode(mode);
+	public void setMode(DcMotor.RunMode mode){
+		this.drive.setMode(mode);
 	}
 
 	private void setMotorVelocities(double frontLeft, double frontRight, double backLeft, double backRight){
@@ -410,6 +407,19 @@ public class AbeDrive {
 
 			GlobalStorage.globalTelemetry.addData("error (radians)", error);
 			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
+
+			/*
+			// get approximate rotational difference
+			double distance = AbeConstants.DRIVE_DIAGONAL_RADIUS * error * 1.5;
+
+			distance *= AbeConstants.DRIVE_AIM_RATE_OF_INCREASE;
+
+			GlobalStorage.globalTelemetry.addData("distance", distance);
+
+			if(!Double.isNaN(distance)) {
+				// add rotation to cumulative powers
+				this.addToCumulativeVelocities(distance, -distance, distance, -distance);
+			}*/
 
 			// get error derivative
 			double derivative = (error - this.lastError) / delta;

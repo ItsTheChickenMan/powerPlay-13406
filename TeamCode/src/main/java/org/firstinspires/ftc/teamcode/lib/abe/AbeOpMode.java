@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 /**
  * @brief Abstract class containing required values and methods for using AbeBot in a general OpMode
  *
- * More specific methods for autonomous and teleop are contained in AbeAutonomous and AbeTeleOp, respectively
+ * More specific methods for autonomous and teleop should be contained in AbeAutonomous and AbeTeleOp, respectively
  */
 public abstract class AbeOpMode extends LinearOpMode {
 	// abe bot
@@ -87,9 +87,11 @@ public abstract class AbeOpMode extends LinearOpMode {
 
 	public void aimAtJunctionRaw(double x, double y, boolean doDrive, boolean doElbow, boolean doSlides){
 		// get height
-		double height = JunctionHelper.getJunctionHeightFromRaw(x, y) + AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
+		double height = JunctionHelper.getJunctionHeightFromRaw(x, y);
 
-		if(height == 0.0) return;
+		if(!JunctionHelper.isValidHeight(height)) return;
+
+		height += AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
 
 		// get real x and y
 		double[] coords = JunctionHelper.snappedToRaw(JunctionHelper.rawToSnapped(x, y)); // TODO: I hate this

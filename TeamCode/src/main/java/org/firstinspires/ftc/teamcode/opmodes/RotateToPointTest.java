@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
@@ -31,7 +30,7 @@ public class RotateToPointTest extends LinearOpMode {
 			return;
 		}
 
-		this.abe.drive.setModes(DcMotor.RunMode.RUN_USING_ENCODER);
+		this.abe.drive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
 		waitForStart();
 

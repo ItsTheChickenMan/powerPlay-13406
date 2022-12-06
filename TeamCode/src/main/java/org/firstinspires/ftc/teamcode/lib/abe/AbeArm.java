@@ -335,12 +335,12 @@ public class AbeArm {
 		// update slides length/elbow angle+
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// FIXME: allow velocity to be set by programmer
-			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.PI/6.0);
+			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.toRadians(45.0));
 
 			if(this.doSlidesAim){
 				this.slides.extendTo(this.aimSlidesLength, 20.0);
 			} else {
-				this.slides.extendTo(AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75, 20.0);
+				this.slides.extendTo(AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75, 22.0);
 			}
 		}
 

@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
 public class JunctionHelper {
+	public static final double NONE_JUNCTION_HEIGHT_INCHES = -1.0;
 	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 0.56;
 	public static final double LOW_JUNCTION_HEIGHT = 13.5;
 	public static final double MEDIUM_JUNCTION_HEIGHT = 23.5;
@@ -13,6 +14,16 @@ public class JunctionHelper {
 		MEDIUM,
 		HIGH
 	};
+
+	/**
+	 * @brief Checks if a height returned by the class is valid or not
+	 *
+	 * @param height
+	 * @return
+	 */
+	public static boolean isValidHeight(double height){
+		return height >= 0.0;
+	}
 
 	/**
 	 *
@@ -86,7 +97,7 @@ public class JunctionHelper {
 				return JunctionHelper.HIGH_JUNCTION_HEIGHT;
 			case NONE:
 			default:
-				return 0.0;
+				return JunctionHelper.NONE_JUNCTION_HEIGHT_INCHES;
 		}
 	}
 }
