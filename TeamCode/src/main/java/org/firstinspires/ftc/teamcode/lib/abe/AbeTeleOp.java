@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
 /**
@@ -27,6 +29,9 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	// are we extending, or no?
 	private boolean extending = false;
+
+	private double lockPoint = 0;
+	private boolean lockPointSet = false;
 
 	// SPECIFICALLY CONTROLLER STATES //
 	private boolean g2ALastPressed = false;
@@ -66,7 +71,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		this.controlMode = mode;
 	}
 
-	public void checkDriveRotation(){
+	public void checkDriveRotation(double speed){
 		// aim vector for drive rotation
 		Vector2d aimVector = new Vector2d(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
 		double heading = aimVector.angle();
@@ -74,9 +79,17 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// aim at where the stick is pointing, otherwise maintain current heading
 		// this effectively creates a "driver centric rotation" where the direction of the joystick more or less dictates the direction that the front will travel in rotation
 		if(aimVector.norm() > 0.5) {
-			this.abe.drive.aimAtAngleRadians(heading);
+			this.lockPointSet = false;
+
+			this.abe.drive.aimAtAngleRadians(heading, speed);
 		} else {
-			//this.abe.drive.aimAtCurrentAngle();
+			if(!this.lockPointSet){
+				this.lockPoint = this.abe.drive.getPoseEstimate().getHeading();
+
+				this.lockPointSet = true;
+			}
+
+			this.abe.drive.aimAtAngleRadians(this.lockPoint, speed);
 		}
 	}
 
@@ -132,14 +145,27 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	}
 
 	public void update(){
-		// update delta
+		// update/fetch delta
 		this.updateDelta();
 
 		double delta = this.getDelta();
 
+		// drive
+		double forward = -gamepad1.left_stick_y;
+		double strafe = gamepad1.left_stick_x;
+		//double speed = 30.0 * (1.20 - Math.max(gamepad1.left_trigger, gamepad1.right_trigger));
+
+		// determine speed (we use both triggers because it's hard to remember which is which sometimes)
+		double speedTrigger = Math.max(gamepad1.left_trigger, gamepad1.right_trigger);
+		double speed = 30 * (1.35 - speedTrigger);
+
+		// drive field oriented
+		this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
+
+		// mode processing
 		// different process depending on mode
 		switch(this.controlMode){
-
+			// aiming at junctions
 			case AIMING: {
 
 				// determine current aim state (which part(s) of the arm are active?)
@@ -152,7 +178,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 				// check for correction
 				// TODO: add correction rate to constants
-				double correctionRate = 5; // in inches / second
+				double correctionRate = 7; // in inches / second
 
 				Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
 
@@ -175,7 +201,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 					// TODO: programmable constant
 					if(distance > 4.0) {
-						this.aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending && !isEventScheduled(this.switchModeSchedule));
+						this.aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending || isEventScheduled(this.switchModeSchedule));
 
 						// keep wrist at 0 degrees
 						this.abe.arm.positionWristDegrees(0.0);
@@ -188,7 +214,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.arm.aimAt(6, 20);
 
 					// do regular drive rotation
-					this.checkDriveRotation();
+					//this.checkDriveRotation();
 
 					// update wrist angle slightly as a visual indication of lack of chosen junction
 					this.abe.arm.positionWristDegrees(35.0);
@@ -200,7 +226,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.arm.unclampFingers();
 
 					// schedule mode switch
-					this.switchModeSchedule = getScheduledTime(1.0);
+					this.switchModeSchedule = getScheduledTime(0.25);
 				}
 
 				if(gamepad2.x){
@@ -226,10 +252,11 @@ public abstract class AbeTeleOp extends AbeOpMode {
 			}
 
 			case GRABBING: {
-				this.checkDriveRotation();
+				// do drive rotation calculation, accounting for slowmode settingre
+				this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
 				if(gamepad2.right_trigger > 0.05){
-					this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
+					this.abe.arm.aimAt(20, 5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 				} else {
 					this.abe.arm.aimAt(6, 20);
 				}
@@ -239,7 +266,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.arm.clampFingers();
 
 					// schedule mode switch in half a second
-					this.switchModeSchedule = getScheduledTime(0.5);
+					this.switchModeSchedule = getScheduledTime(0.4);
 				}
 
 				// check if mode switch has been requested

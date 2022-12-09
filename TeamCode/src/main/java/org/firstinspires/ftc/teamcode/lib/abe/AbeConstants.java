@@ -10,6 +10,8 @@ import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
  * Names should be very self-documenting
  */
 public class AbeConstants {
+	public static final double FIELD_SIZE_INCHES = 144; // field length and width in inches
+
 	// drive related... //
 	public static final double DRIVE_GEAR_RATIO = 1; // 1:1
 	public static final double DRIVE_TICK_RATIO = 384.5; // 384.5 ticks/rotation
@@ -20,6 +22,7 @@ public class AbeConstants {
 	public static final double DRIVE_AIM_P_CONSTANT = 150;
 	public static final double DRIVE_AIM_I_CONSTANT = 0;
 	public static final double DRIVE_AIM_D_CONSTANT = 5;
+	public static final double DRIVE_EXTRA_KICK = 8.0; // kicks in between 1 & 5 degrees to ensure it gets close
 
 	/*
 	public static final double DRIVE_AIM_RATE_OF_INCREASE = 2;
@@ -39,13 +42,14 @@ public class AbeConstants {
 
 	//public static final double HEIGHT_FALLOFF_PER_INCH_INCHES = -0.11439;
 
-	public static final double ELBOW_TORQUE_FACTOR = 2.5;
+	public static final double ELBOW_TORQUE_FACTOR = 2.75;
 
 	public static double getExpectedElbowSag(double slideExtension){
 		// approximately linear relationship
 		// determined through testing at zero degrees
 		// works best within a 1.5 tile range, outside of that it tends to fail due to non linearity of sagging at that range
-		return slideExtension*0.0039850756 - 0.0211473332;
+		//return slideExtension*0.0039850756 - 0.0211473332;
+		return slideExtension*0.0025920267 + 0.0033715571;
 	}
 
 	// elbow related... //
@@ -71,11 +75,11 @@ public class AbeConstants {
 	// wrist related... //
 	public static final double WRIST_MAX_RANGE_DEGREES = 295;
 	public static final double WRIST_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.WRIST_MAX_RANGE_DEGREES);
-	public static final double WRIST_OFFSET_INCHES = 6.5; // how far forward the wrist hole is from the end of the slides
+	public static final double WRIST_OFFSET_INCHES = 6; // how far forward the wrist hole is from the end of the slides
 
 	// fingers related... //
 	public static final double FINGERS_MAX_RANGE_DEGREES = 360; // FIXME: update value
 	public static final double FINGERS_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.FINGERS_MAX_RANGE_DEGREES);
-	public static final double FINGERS_CLOSED_POSITION = -35;
+	public static final double FINGERS_CLOSED_POSITION = 0;
 	public static final double FINGERS_OPEN_POSITION = -135;
 }

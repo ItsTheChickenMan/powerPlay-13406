@@ -23,7 +23,7 @@ public class AbeConfig {
 
 		hardware.elbow = hardwareMap.get(DcMotorEx.class, "angleMotor");
 		hardware.slides = hardwareMap.get(DcMotorEx.class, "slidesMotor");
-		hardware.slides2 = hardwareMap.get(DcMotorEx.class, "slides2");
+		//hardware.slides2 = hardwareMap.get(DcMotorEx.class, "slides2");
 
 		hardware.elbow.setDirection(DcMotorSimple.Direction.REVERSE);
 		hardware.slides.setDirection(DcMotorSimple.Direction.REVERSE);

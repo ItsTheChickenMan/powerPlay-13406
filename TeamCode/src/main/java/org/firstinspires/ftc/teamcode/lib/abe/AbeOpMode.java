@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.lib.abe;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**
@@ -89,8 +90,10 @@ public abstract class AbeOpMode extends LinearOpMode {
 		// get height
 		double height = JunctionHelper.getJunctionHeightFromRaw(x, y);
 
+		// ensure that the height is valid
 		if(!JunctionHelper.isValidHeight(height)) return;
 
+		// add the height offset
 		height += AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
 
 		// get real x and y
@@ -98,6 +101,25 @@ public abstract class AbeOpMode extends LinearOpMode {
 		double rx = coords[0];
 		double ry = coords[1];
 
+		/*if( (height-AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES) >= JunctionHelper.HIGH_JUNCTION_HEIGHT-1) {
+			// TODO: add this to AbeConstants?
+			height -= 0.75;
+
+			// account for forward
+			Vector2D forward = this.abe.drive.getForwardVector();
+
+			// TODO: add this to AbeConstants?
+			double offset = 5.0;
+
+			// multiply by offset
+			forward = forward.scalarMultiply(offset);
+
+			// add to aim coords
+			rx += forward.getX();
+			ry += forward.getY();
+		}*/
+
+		// aim
 		this.abe.aimAt(rx, height, ry, doDrive, doElbow, doSlides);
 	}
 

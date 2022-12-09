@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -17,6 +18,15 @@ import org.firstinspires.ftc.teamcode.opmodes.ArmStressTest;
  * @brief The entire arm (angle adjuster, slides, wrist, and fingers) wrapped into one easy-to-use class
  */
 public class AbeArm {
+	// constants //
+	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(1.0);
+	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.2);
+
+	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.25;
+	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.2;
+
+	// members //
+
 	private AngleAdjuster elbow;
 	public LinearSlidesEx slides;
 
@@ -24,21 +34,37 @@ public class AbeArm {
 	private PositionableServo fingers;
 
 	// overall... //
+
+	// FIXME: too many timers in class instances?  might be better to have a global timer passed to constructor (at least as an option)
+	private ElapsedTime timer;
+	private double lastTime;
+
 	private boolean manualControl; // is the programmer allowed to control the arm?
-
-	// slides length for aiming at point
-	private double aimSlidesLength;
-
-	// elbow angle for aiming at point
-	private double aimElbowAngle;
 
 	// are we aiming rn?
 	private boolean isAiming;
 
-	private boolean doElbowAim;
+	// is the arm in a steady state?
+	// if not aiming, always true
+	// see AbeDrive for similar truth conditions
+	private boolean steady;
+
+	// slides... //
+
+	// slides length for aiming at point
+	private double aimSlidesLength;
+
+	private double lastSlidesError;
+
 	private boolean doSlidesAim;
 
 	// elbow... //
+	private boolean doElbowAim;
+
+	// elbow angle for aiming at point
+	private double aimElbowAngle;
+
+	private double lastElbowError;
 
 	// wrist... //
 	private double wristAngle = 0; // relative to elbow, in degrees
@@ -51,9 +77,27 @@ public class AbeArm {
 		this.slides = slides;
 		this.wrist = wrist;
 		this.fingers = fingers;
+
+		this.timer = new ElapsedTime();
 	}
 
 	// GETTERS & SETTERS //
+
+	public boolean isSteady(){
+		return this.steady;
+	}
+
+	/**
+	 * @brief get the current height of the arm
+	 *
+	 * @return
+	 */
+	public double getHeight(){
+		double elbowAngle = this.elbow.getAngleRadians();
+		double slidesExtension = this.slides.getExtension();
+
+		return Math.sin(elbowAngle + Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / slidesExtension)) * Math.sqrt(slidesExtension*slidesExtension + AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES);
+	}
 
 	public void aimAt(double x, double y){
 		this.aimAt(x, y, true, true);
@@ -332,16 +376,47 @@ public class AbeArm {
 	 * @brief Update the entire arm (required in automatic mode)
 	 */
 	public void update(){
+		// get delta
+		double delta = this.timer.seconds();
+		this.timer.reset();
+
 		// update slides length/elbow angle+
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// FIXME: allow velocity to be set by programmer
 			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.toRadians(45.0));
 
+			double slidesLength = this.aimSlidesLength;
+
 			if(this.doSlidesAim){
-				this.slides.extendTo(this.aimSlidesLength, 20.0);
+				this.slides.extendTo(this.aimSlidesLength, 26.0);
 			} else {
-				this.slides.extendTo(AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75, 22.0);
+				slidesLength = AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75;
+				this.slides.extendTo(slidesLength, 26.0);
 			}
+
+			// check steady state
+
+			// calculate error
+			double elbowError = this.aimElbowAngle - this.elbow.getAngleRadians();
+			double slidesError = slidesLength - this.slides.getExtension();
+
+			// calculate derivative
+			double elbowDerivative = (elbowError - this.lastElbowError) / delta;
+			double slidesDerivative = (slidesError - this.lastSlidesError) / delta;
+
+			GlobalStorage.globalTelemetry.addData("elbowError", elbowError);
+			GlobalStorage.globalTelemetry.addData("elbowDerivative", elbowDerivative);
+			GlobalStorage.globalTelemetry.addData("slidesError", slidesError);
+			GlobalStorage.globalTelemetry.addData("slidesDerivative", slidesDerivative);
+
+			this.steady =
+							( Math.abs(elbowError) < AbeArm.ELBOW_STEADY_STATE_ERROR_TOLERANCE && Math.abs(elbowDerivative) < AbeArm.ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE) &&
+							( Math.abs(slidesError) < AbeArm.SLIDES_STEADY_STATE_ERROR_TOLERANCE && Math.abs(slidesDerivative) < AbeArm.SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE);
+
+			this.lastElbowError = elbowError;
+			this.lastSlidesError = slidesError;
+		} else {
+			this.steady = true;
 		}
 
 		// check elbow

@@ -19,11 +19,14 @@ import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
  */
 public class AbeDrive {
 	// enum for current aiming system that the drive train is using
-	public static enum AimMode {
+	public enum AimMode {
 		NONE,
 		POINT,
 		ANGLE
 	}
+
+	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(3.5);
+	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.1);
 
 	// rr interface
 	private SampleMecanumDrive drive;
@@ -34,8 +37,13 @@ public class AbeDrive {
 	private double backLeftVelocity;
 	private double backRightVelocity;
 
+	// are we in a steady state?
+	// always true if not aiming
+	// if aiming, true if err is below STEADY_STATE_ERROR_TOLERANCE and derr/dt is below STEADY_STATE_DERIVATIVE_TOLERANCE
+	private boolean steady;
+
 	// current aim mode
-	private AimMode aimMode = AimMode.NONE;
+	private AimMode aimMode;
 
 	// point being aimed at currently, if mode is POINT
 	// FIXME: probably should switch to apache vectors
@@ -53,7 +61,19 @@ public class AbeDrive {
 	private double lastError = 0;
 	private double totalError = 0;
 
+	private double lastTime;
 	private ElapsedTime deltaTimer;
+
+	/*
+	private double lastAimUpdate = 0;
+	private double aimUpdateRate = 0.75;
+	private double aimIntervalRange = 9.0;
+	*/
+
+	private double distanceFalloffRange = 12.0;
+	private double falloffRate = 1.0;
+
+	private double rotationSpeed = 1.0;
 
 	// position offset
 	// I would just set the pose estimate of the RR drive class, but doing so causes the drivetrain to spin in teleop for some reason that's probably out of my control, so I'm doing this instead
@@ -69,7 +89,7 @@ public class AbeDrive {
 
 	private double maxVelocity;
 
-	public AbeDrive(HardwareMap hardwareMap, double armOffset, double gearRatio, double tickRatio, double wheelCircumference, double maxVelocity, double aim_p, double aim_i, double aim_d){
+	public AbeDrive(HardwareMap hardwareMap, double armOffset, double gearRatio, double tickRatio, double wheelCircumference, double maxVelocity, double aim_p, double aim_i, double aim_d) {
 		this.drive = new SampleMecanumDrive(hardwareMap);
 		this.deltaTimer = new ElapsedTime();
 
@@ -93,12 +113,11 @@ public class AbeDrive {
 	}
 
 	/**
-	 * @brief Returns the amount of inches that the drive train is expected to travel, not accounting for traction, if all wheels were to move a certain number of ticks
-	 *
 	 * @param ticks
 	 * @return
+	 * @brief Returns the amount of inches that the drive train is expected to travel, not accounting for traction, if all wheels were to move a certain number of ticks
 	 */
-	public double tickToInches(double ticks){
+	public double tickToInches(double ticks) {
 		// convert ticks to rotations
 		double rotations = ticks / this.tickRatio;
 
@@ -110,12 +129,11 @@ public class AbeDrive {
 	}
 
 	/**
-	 * @brief Returns the amount of ticks that the drive train is expected to need to travel a certain number of inches, not accounting for traction
-	 *
 	 * @param inches
 	 * @return
+	 * @brief Returns the amount of ticks that the drive train is expected to need to travel a certain number of inches, not accounting for traction
 	 */
-	public double inchesToTicks(double inches){
+	public double inchesToTicks(double inches) {
 		// convert inches to rotations
 		double rotations = inches / this.wheelCircumference;
 
@@ -126,96 +144,125 @@ public class AbeDrive {
 		return rotations * this.tickRatio;
 	}
 
+	public boolean isSteady(){
+		return this.steady;
+	}
+
 	/**
-	 * @brief mirror for SampleMecanumDrive's getPoseEstimate
-	 *
 	 * @return current pose estimate (see RR docs)
+	 * @brief mirror for SampleMecanumDrive's getPoseEstimate
 	 */
-	public Pose2d getPoseEstimate(){
+	public Pose2d getPoseEstimate() {
 		Pose2d offset = new Pose2d(this.positionXOffset, this.positionYOffset);
 
 		return offset.plus(this.drive.getPoseEstimate());
 	}
 
-	public Vector2D getPoseEstimateAsVector(){
-			return new Vector2D(this.getPoseEstimate().getX(), this.getPoseEstimate().getY());
+	public Vector2D getPoseEstimateAsVector() {
+		return new Vector2D(this.getPoseEstimate().getX(), this.getPoseEstimate().getY());
+	}
+
+
+	/**
+	 * @brief Get the heading of the robot as a normalized vector
+	 *
+	 * @return a Vector2D representing the forward vector
+	 */
+	public Vector2D getForwardVector(){
+		// the Vector2D doesn't have a rotation method for some reason, so use RR vectors and then switch
+		// I hate this a lot, but I don't really have the energy to switch all of the vectors over
+		Vector2d forward = new Vector2d(1, 0).rotated(this.getPoseEstimate().getHeading());
+
+		return new Vector2D(forward.getX(), forward.getY());
 	}
 
 	/**
-	 * @brief Set the pose estimate for the drive train, without affecting the position offsets
-	 *
 	 * @param x
 	 * @param y
 	 * @param rotation
+	 * @brief Set the pose estimate for the drive train, without affecting the position offsets
 	 */
-	public void setPoseEstimate(double x, double y, double rotation){
+	public void setPoseEstimate(double x, double y, double rotation) {
 		this.drive.setPoseEstimate(new Pose2d(
-			x, y, rotation
+						x, y, rotation
 		));
 	}
 
-	public void setPoseEstimate(Pose2d pose){
+	public void setPoseEstimate(Pose2d pose) {
 		this.drive.setPoseEstimate(pose);
 	}
 
-	public void setPositionXOffset(double x){
+	public void setPositionXOffset(double x) {
 		this.positionXOffset = x;
 	}
 
-	public void setPositionYOffset(double y){
+	public void setPositionYOffset(double y) {
 		this.positionYOffset = y;
 	}
 
-	public void addToPositionXOffset(double x){
+	public void addToPositionXOffset(double x) {
 		this.positionXOffset += x;
 	}
 
-	public void addToPositionYOffset(double y){
+	public void addToPositionYOffset(double y) {
 		this.positionYOffset += y;
 	}
 
-	public void setOffset(double x, double y){
+	public void setOffset(double x, double y) {
 		this.positionXOffset = x;
 		this.positionYOffset = y;
 	}
 
-	public void addToOffset(double x, double y){
+	public void addToOffset(double x, double y) {
 		this.addToPositionXOffset(x);
 		this.addToPositionYOffset(y);
 	}
 
 	/**
-	 * @brief is the bot aiming at a point at the moment?
-	 *
 	 * @return true if it is, false if it isn't
+	 * @brief is the bot aiming at a point at the moment?
 	 */
-	public boolean isAiming(){
-		return this.aimMode != AimMode.NONE;
+	public boolean isAiming() { return this.aimMode != AimMode.NONE; }
+
+	public void aimAtPoint(double x, double y){
+		this.aimAtPoint(x, y, 1.0);
 	}
 
 	/**
-	 * @brief set the bot to aim at a point, where the point is relative to the starting place of the robot
-	 *
-	 * This overwrites any point that was there before
-	 *
-	 * @note uses RR axes (which are weird, look it up)
-	 *
 	 * @param x x value for point to aim at
+	 * @brief set the bot to aim at a point, where the point is relative to the starting place of the robot
+	 * <p>
+	 * This overwrites any point that was there before
+	 * @note uses RR axes (which are weird, look it up)
 	 * @parma y y value for point to aim at
 	 */
-	public void aimAtPoint(double x, double y){
+	public void aimAtPoint(double x, double y, double rotationSpeed) {
 		this.aimMode = AimMode.POINT;
 
 		this.aimAtPoint = new Vector2d(x, y);
+
+		this.rotationSpeed = rotationSpeed;
+	}
+
+	public void aimAtAngleDegrees(double angle){
+		this.aimAtAngleDegrees(angle, 1.0);
 	}
 
 	/**
+	 * @param angle
 	 * @brief aim at an angle, in degrees
+	 */
+	public void aimAtAngleDegrees(double angle, double rotationSpeed) {
+		this.aimAtAngleRadians(Math.toRadians(angle), rotationSpeed);
+	}
+
+	/**
+	 * @brief aim at angle radians, without a set rotation speed
 	 *
 	 * @param angle
 	 */
-	public void aimAtAngleDegrees(double angle){
-		this.aimAtAngleRadians(Math.toRadians(angle));
+	public void aimAtAngleRadians(double angle) {
+		this.aimAtAngleRadians(angle, 1.0);
 	}
 
 	/**
@@ -223,20 +270,34 @@ public class AbeDrive {
 	 *
 	 * @param angle
 	 */
-	public void aimAtAngleRadians(double angle){
+	public void aimAtAngleRadians(double angle, double rotationSpeed){
 		this.aimMode = AimMode.ANGLE;
 
 		this.aimAtAngle = angle;
+
+		this.rotationSpeed = rotationSpeed;
+	}
+
+	public double getAimAtAngleRadians(){
+		return this.aimAtAngle;
+	}
+
+	public double getAimAtAngleDegrees(){
+		return Math.toDegrees(this.aimAtAngle);
+	}
+
+	public void aimAtCurrentAngle(){
+		this.aimAtCurrentAngle(1.0);
 	}
 
 	/**
 	 * @brief locks the drive's rotation onto its current heading until another call to an aimAt method or clearAim
 	 */
-	public void aimAtCurrentAngle(){
+	public void aimAtCurrentAngle(double rotationSpeed){
 		// fetch angle from current pose
 		double rotation = this.drive.getPoseEstimate().getHeading();
 
-		this.aimAtAngleRadians(rotation);
+		this.aimAtAngleRadians(rotation, rotationSpeed);
 	}
 
 	/**
@@ -375,35 +436,36 @@ public class AbeDrive {
 		this.drive.update();
 
 		// get delta
-		double delta = this.deltaTimer.seconds();
-
-		// get current pose
-		Pose2d pose = this.getPoseEstimate();
-		Vector2d coords = pose.vec();
-		double heading = pose.getHeading();
+		double time = this.deltaTimer.seconds();
+		double delta = time - this.lastTime;
+		this.lastTime = time;
 
 		if(this.isAiming() && !dontDoAim){
-			double desiredAngle = 0;
+			// get current pose
+			Pose2d pose = this.getPoseEstimate();
+			Vector2d coords = pose.vec();
+			double heading = pose.getHeading();
 
 			if(this.aimMode == AimMode.POINT) {
 				Vector2d offset = coords.minus(this.aimAtPoint);
 
 				double distance = offset.norm();
 
+				// if distance is less than a certain threshold, only update on an interval to avoid oscillation that happens at close range from the position (therefore the aimAtAngle) changing too rapidly
 				if (distance != 0.0) {
 					// get currently desired angle
-					desiredAngle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
-					desiredAngle += Math.PI;
+					this.aimAtAngle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
+					this.aimAtAngle += Math.PI;
+
+					//this.lastAimUpdate = time;
 				}
-			} else if(this.aimMode == AimMode.ANGLE){
-				desiredAngle = this.aimAtAngle;
 			}
 
 			// pid
 			// TODO: abstract into class/borrow a better implementation from somewhere
 
 			// get error
-			double error = -AngleHelper.angularDistanceRadians(heading, desiredAngle);
+			double error = -AngleHelper.angularDistanceRadians(heading, this.aimAtAngle);
 
 			GlobalStorage.globalTelemetry.addData("error (radians)", error);
 			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
@@ -424,14 +486,39 @@ public class AbeDrive {
 			// get error derivative
 			double derivative = (error - this.lastError) / delta;
 
+			GlobalStorage.globalTelemetry.addData("derivative (radians)", derivative);
+
 			// save error
 			this.lastError = error;
 
 			// add to integral
 			if (!Double.isNaN(error)) this.totalError += error * delta;
 
+			// calculate distance falloff
+			double distanceFalloff = 1.0;
+
+			if(this.aimMode == AimMode.POINT) {
+				// FIXME: double calculation
+				Vector2d offset = coords.minus(this.aimAtPoint);
+
+				double distance = offset.norm();
+
+				distanceFalloff = Math.min(1.0, distance / this.distanceFalloffRange);
+			}
+
 			// calculate rotation power
 			double rotation = error * this.aim_p + derivative * this.aim_d + this.totalError * this.aim_i;
+
+			// add a little bit to get us to the end (a little more reliable than the integral constant)
+			// FIXME: not really customizable
+			if(error < Math.toRadians(5.0) && error > Math.toRadians(1.0)){
+				rotation += AbeConstants.DRIVE_EXTRA_KICK;
+			}
+
+			rotation *= distanceFalloff;
+			rotation *= this.rotationSpeed;
+
+			this.steady = Math.abs(error) < AbeDrive.STEADY_STATE_ERROR_TOLERANCE && Math.abs(derivative) < AbeDrive.STEADY_STATE_DERIVATIVE_TOLERANCE;
 
 			// FIXME: remove this hack
 			//double maxRotation = 0.5;
@@ -446,14 +533,13 @@ public class AbeDrive {
 				this.backLeftVelocity += rotation;
 				this.backRightVelocity -= rotation;*/
 			}
+		} else {
+			this.steady = true;
 		}
 
 		this.normalizePowers();
 
 		// flush powers to motors
 		this.flushCumulativeVelocities();
-
-		// reset delta timer
-		deltaTimer.reset();
 	}
 }

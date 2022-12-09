@@ -20,13 +20,6 @@ public class AbeAutomatic extends AbeTeleOp {
         waitForStart();
 
         while(opModeIsActive()) {
-            // drive stuff
-            double forward = -gamepad1.left_stick_y;
-            double strafe = gamepad1.left_stick_x;
-            double speed = 30.0 * (1.15 - Math.max(gamepad1.left_trigger, gamepad1.right_trigger));
-
-            this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
-
             update();
 
             telemetry.update();

@@ -44,7 +44,7 @@ public class AbeBot {
 
 		public DcMotorEx elbow;
 		public DcMotorEx slides;
-		public DcMotorEx slides2;
+		//public DcMotorEx slides2;
 
 		public Servo wristServo;
 		public Servo fingerServo;
@@ -66,7 +66,7 @@ public class AbeBot {
 
 			this.elbow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 			this.slides.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-			this.slides2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+			//this.slides2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 		}
 
 		public boolean complete(){
@@ -77,7 +77,7 @@ public class AbeBot {
 							this.backRight != null &&*/
 							this.elbow != null &&
 							this.slides != null &&
-							this.slides2 != null &&
+							/*this.slides2 != null &&*/
 							this.wristServo != null &&
 							this.fingerServo != null &&
 							this.elbowLimitSensor != null
@@ -103,6 +103,9 @@ public class AbeBot {
 	private boolean doDriveAim = true;
 	private boolean doElbowAim = false;
 	private boolean doSlidesAim = false;
+
+	// additional check that sets steady to negative until at least the next update call
+	private boolean unsteadyUntilUpdate;
 
 	/**
 	 * @brief Constructor
@@ -134,13 +137,17 @@ public class AbeBot {
 						new AngleAdjuster(this.hardware.elbow, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TICK_RATIO, AbeConstants.ELBOW_LOWER_LIMIT_ROTATIONS, AbeConstants.ELBOW_UPPER_LIMIT_ROTATIONS, this.hardware.elbowLimitSensor),
 						new LinearSlidesEx(
 										new PositionableMotor[]{
-														new PositionableMotor(this.hardware.slides, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO),
-														new PositionableMotor(this.hardware.slides2, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO)
+														new PositionableMotor(this.hardware.slides, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO)
+														/*new PositionableMotor(this.hardware.slides2, AbeConstants.SLIDE_GEAR_RATIO, AbeConstants.SLIDE_TICK_RATIO)*/
 										},
 										AbeConstants.SLIDE_BASE_LENGTH_INCHES, AbeConstants.SLIDE_BASE_LENGTH_INCHES + AbeConstants.SLIDE_MAX_EXTENSION_INCHES, AbeConstants.SLIDE_SPOOL_CIRCUMFERENCE_INCHES, AbeConstants.SLIDE_EXTENSION_FACTOR),
 						new PositionableServo(this.hardware.wristServo, AbeConstants.WRIST_MAX_RANGE_RADIANS),
 						new PositionableServo(this.hardware.fingerServo, AbeConstants.FINGERS_MAX_RANGE_RADIANS)
 		);
+	}
+
+	public double getArmHeight(){
+		return this.arm.getHeight() + AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
 	}
 
 	public void setPoseEstimate(double x, double y, double r){
@@ -169,6 +176,8 @@ public class AbeBot {
 		this.drive.aimAtPoint(x, z);
 
 		this.aimAtPoint = new Vector3D(x, y, z);
+
+		this.unsteadyUntilUpdate = true;
 	}
 
 	/**
@@ -195,6 +204,12 @@ public class AbeBot {
 
 		// save point
 		this.aimAtPoint = new Vector3D(x - pose.getX(), y, z - pose.getY());
+
+		this.unsteadyUntilUpdate = true;
+	}
+
+	public boolean isSteady(){
+		return this.drive.isSteady() && this.arm.isSteady() && !this.unsteadyUntilUpdate;
 	}
 
 	public void clearPoint(){
@@ -235,5 +250,8 @@ public class AbeBot {
 		}
 
 		this.arm.update();
+
+		// revert unsteady check
+		this.unsteadyUntilUpdate = false;
 	}
 }
