@@ -82,6 +82,14 @@ public class AbeArm {
 
 	// GETTERS & SETTERS //
 
+	public void addToElbowOffsetRadians(double offset){
+		this.elbow.addToAngleOffsetRadians(offset);
+	}
+
+	public void addToElbowOffsetDegrees(double offset){
+		this.elbow.addToAngleOffsetDegrees(offset);
+	}
+
 	public void setSlidesRestingPosition(double restingPosition){
 		this.slidesRestingPosition = restingPosition;
 	}

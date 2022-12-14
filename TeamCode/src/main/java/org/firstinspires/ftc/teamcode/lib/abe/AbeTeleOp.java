@@ -255,10 +255,18 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				// do drive rotation calculation, accounting for slowmode settingre
 				this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
-				if(gamepad2.right_trigger > 0.05){
-					this.abe.arm.aimAt(20, 5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
+				boolean down = gamepad2.right_trigger > 0.05;
+
+				if(down){
+					this.abe.arm.aimAt(20, 5.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 				} else {
 					this.abe.arm.aimAt(6, 20);
+
+					if(gamepad2.dpad_down){
+						this.abe.arm.addToElbowOffsetDegrees(-1 * delta);
+					} else if (gamepad2.dpad_up){
+						this.abe.arm.addToElbowOffsetDegrees(1 * delta);
+					}
 				}
 
 				// check for grab

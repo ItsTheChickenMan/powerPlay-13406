@@ -90,8 +90,8 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	protected static final double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
 	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
 
-	protected static final double GRAB_ANGLE_ERROR_DEGREES = 25.0;
-	protected static final double EXTENSION_ANGLE_ERROR_DEGREES = 40.0;
+	protected static final double GRAB_ANGLE_ERROR_DEGREES = 10.0;
+	protected static final double EXTENSION_ANGLE_ERROR_DEGREES = 10.0;
 
 	// misc. //
 

@@ -32,7 +32,7 @@ public class AbeDrive {
 		ANGLE
 	}
 
-	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(3.5);
+	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(1.0);
 	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.1);
 
 	// rr interface

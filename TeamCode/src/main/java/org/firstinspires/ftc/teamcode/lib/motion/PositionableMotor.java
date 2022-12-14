@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 public class PositionableMotor {
 	// motor
 	private DcMotorEx motor;
-	private int tickOffset = 0; // current tick offset from the number returned by getCurrentPosition, added to whenever resetEncoders is called
+	private double tickOffset = 0; // current tick offset from the number returned by getCurrentPosition, added to whenever resetEncoders is called
 
 	// details
 	private double gearRatio; // NOTE: ratio of driver gear rotations : driven gear rotations
@@ -35,6 +35,18 @@ public class PositionableMotor {
 
 	public static double degreesToRotations(double degrees){
 		return degrees / 360.0;
+	}
+
+	public static double rotationsToTicks(double rotations, double tickRatio){
+		return rotations * tickRatio;
+	}
+
+	public static double degreesToTicks(double degrees, double tickRatio){
+		return PositionableMotor.rotationsToTicks(PositionableMotor.degreesToRotations(degrees), tickRatio);
+	}
+
+	public static double radiansToTicks(double radians, double tickRatio){
+		return PositionableMotor.rotationsToTicks(PositionableMotor.radiansToRotations(radians), tickRatio);
 	}
 
 	public PositionableMotor(DcMotorEx motor, double gearRatio, double tickRatio){
@@ -84,8 +96,16 @@ public class PositionableMotor {
 	 * @brief Reset the motor encoders
 	 */
 	public void resetEncoders(){
-		this.tickOffset += this.getRawPosition();
+		this.tickOffset += (double)this.getRawPosition();
 		this.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+	}
+
+	public void addToAngleOffsetRadians(double offset){
+		this.tickOffset += PositionableMotor.radiansToTicks(offset, this.tickRatio);
+	}
+
+	public void addToAngleOffsetDegrees(double offset){
+		this.tickOffset += PositionableMotor.degreesToTicks(offset, this.tickRatio);
 	}
 
 	public void disable(){
@@ -129,7 +149,7 @@ public class PositionableMotor {
 	public double getRotations() {
 		// get current rotations from ticks + gear ratio
 		int position = this.getRawPosition();
-		double rotations = (double)(position + this.tickOffset) / this.tickRatio;
+		double rotations = ((double)(position) + this.tickOffset) / this.tickRatio;
 
 		double drivenRotations = rotations / this.gearRatio;
 
