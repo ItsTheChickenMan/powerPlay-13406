@@ -1,18 +1,12 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
-import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
-import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
-import org.firstinspires.ftc.teamcode.opmodes.AimAtPointTest;
-import org.firstinspires.ftc.teamcode.opmodes.ArmStressTest;
 
 /**
  * @brief The entire arm (angle adjuster, slides, wrist, and fingers) wrapped into one easy-to-use class
@@ -22,8 +16,8 @@ public class AbeArm {
 	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(1.0);
 	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.2);
 
-	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.25;
-	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.2;
+	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.75;
+	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.5;
 
 	// members //
 
@@ -58,6 +52,9 @@ public class AbeArm {
 
 	private boolean doSlidesAim;
 
+	// position to go to when slides are told not to aim
+	private double slidesRestingPosition = AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75;
+
 	// elbow... //
 	private boolean doElbowAim;
 
@@ -78,10 +75,20 @@ public class AbeArm {
 		this.wrist = wrist;
 		this.fingers = fingers;
 
+		this.resetSlidesRestingPosition();
+
 		this.timer = new ElapsedTime();
 	}
 
 	// GETTERS & SETTERS //
+
+	public void setSlidesRestingPosition(double restingPosition){
+		this.slidesRestingPosition = restingPosition;
+	}
+
+	public void resetSlidesRestingPosition(){
+		this.slidesRestingPosition = AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75;
+	}
 
 	public boolean isSteady(){
 		return this.steady;
@@ -382,16 +389,27 @@ public class AbeArm {
 
 		// update slides length/elbow angle+
 		if(this.isAiming() && !this.isManualControlEnabled()){
-			// FIXME: allow velocity to be set by programmer
-			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, Math.toRadians(45.0));
+			// falloff from 55 degrees/second at low extension (<24 inches) to 35 degrees/second at high extension (>36 inches)
+			double maxSpeed = Math.toRadians(55.0);
+			double minSpeed = Math.toRadians(35.0);
+
+			double minExtension = 24.0;
+			double maxExtension = 36.0;
+
+			double interpolation = (Range.clip(this.slides.getExtension(), minExtension, maxExtension) - minExtension) / (maxExtension - minExtension);
+
+			double speed = (1-interpolation) * (maxSpeed - minSpeed) + minSpeed;
+
+			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, speed);
 
 			double slidesLength = this.aimSlidesLength;
+			double slideSpeed = 30.0;
 
 			if(this.doSlidesAim){
-				this.slides.extendTo(this.aimSlidesLength, 26.0);
+				this.slides.extendTo(this.aimSlidesLength, 30.0);
 			} else {
-				slidesLength = AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75;
-				this.slides.extendTo(slidesLength, 26.0);
+				slidesLength = this.slidesRestingPosition;
+				this.slides.extendTo(slidesLength, 30.0);
 			}
 
 			// check steady state
@@ -404,10 +422,10 @@ public class AbeArm {
 			double elbowDerivative = (elbowError - this.lastElbowError) / delta;
 			double slidesDerivative = (slidesError - this.lastSlidesError) / delta;
 
-			GlobalStorage.globalTelemetry.addData("elbowError", elbowError);
+			/*GlobalStorage.globalTelemetry.addData("elbowError", elbowError);
 			GlobalStorage.globalTelemetry.addData("elbowDerivative", elbowDerivative);
 			GlobalStorage.globalTelemetry.addData("slidesError", slidesError);
-			GlobalStorage.globalTelemetry.addData("slidesDerivative", slidesDerivative);
+			GlobalStorage.globalTelemetry.addData("slidesDerivative", slidesDerivative);*/
 
 			this.steady =
 							( Math.abs(elbowError) < AbeArm.ELBOW_STEADY_STATE_ERROR_TOLERANCE && Math.abs(elbowDerivative) < AbeArm.ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE) &&

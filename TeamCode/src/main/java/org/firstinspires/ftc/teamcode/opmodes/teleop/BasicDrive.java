@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
  */
 
 // we ALWAYS put @TeleOp in front of op modes
-@TeleOp
+@TeleOp(group = "Tests")
 public class BasicDrive extends LinearOpMode {
     // hardware definitions
     DcMotorEx frontLeft;

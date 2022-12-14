@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
  *
  */
 
-@TeleOp
+@TeleOp(group = "Comp")
 public class AbeManual extends LinearOpMode {
 	// hardware //
 	private AbeBot.Hardware hardware;

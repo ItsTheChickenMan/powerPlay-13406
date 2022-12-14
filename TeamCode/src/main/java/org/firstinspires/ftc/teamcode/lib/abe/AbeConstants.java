@@ -19,10 +19,10 @@ public class AbeConstants {
 	public static final double DRIVE_WHEEL_CIRCUMFERENCE_INCHES = 1.88976378 * Math.PI * 2;
 	public static final double DRIVE_MAX_VELOCITY = 36; // inches/second
 
-	public static final double DRIVE_AIM_P_CONSTANT = 150;
+	public static final double DRIVE_AIM_P_CONSTANT = 100;
 	public static final double DRIVE_AIM_I_CONSTANT = 0;
-	public static final double DRIVE_AIM_D_CONSTANT = 5;
-	public static final double DRIVE_EXTRA_KICK = 8.0; // kicks in between 1 & 5 degrees to ensure it gets close
+	public static final double DRIVE_AIM_D_CONSTANT = 0;
+	public static final double DRIVE_EXTRA_KICK = 8.0;
 
 	/*
 	public static final double DRIVE_AIM_RATE_OF_INCREASE = 2;
@@ -80,6 +80,6 @@ public class AbeConstants {
 	// fingers related... //
 	public static final double FINGERS_MAX_RANGE_DEGREES = 360; // FIXME: update value
 	public static final double FINGERS_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.FINGERS_MAX_RANGE_DEGREES);
-	public static final double FINGERS_CLOSED_POSITION = 0;
+	public static final double FINGERS_CLOSED_POSITION = -10;
 	public static final double FINGERS_OPEN_POSITION = -135;
 }

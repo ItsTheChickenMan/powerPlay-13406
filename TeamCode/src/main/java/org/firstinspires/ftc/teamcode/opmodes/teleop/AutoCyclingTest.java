@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -13,17 +13,18 @@ public class AutoCyclingTest extends AbeAutonomous {
 	public void runOpMode() throws InterruptedException {
 		GlobalStorage.globalTelemetry = telemetry;
 
-		setup(Mode.RIGHT, new Vector2D(48, 48));
+		setup(null, Mode.RIGHT, new Vector2D(72, 48));
 
-		setStartPoint(34.25, 33.5, Math.toRadians(-90));
+		setStartPoint(55.5, 34.5, Math.toRadians(-90));
+		//setStartPoint(32.5, 31. Math.toRadians(-90));
 
 		this.abe.arm.unclampFingers();
 
 		waitForStart();
 
 		while(opModeIsActive()) {
-			telemetry.addData("drive steady", this.abe.drive.isSteady());
-			telemetry.addData("arm steady", this.abe.arm.isSteady());
+			//telemetry.addData("drive steady", this.abe.drive.isSteady());
+			//telemetry.addData("arm steady", this.abe.arm.isSteady());
 
 			if(this.getConesInStack() > 0){
 				cycle();
@@ -31,7 +32,7 @@ public class AutoCyclingTest extends AbeAutonomous {
 
 			update();
 
-			telemetry.update();
+			//telemetry.update();
 		}
 	}
 }

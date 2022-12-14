@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**

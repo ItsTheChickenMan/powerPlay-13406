@@ -208,8 +208,16 @@ public class AbeBot {
 		this.unsteadyUntilUpdate = true;
 	}
 
+	public boolean isArmSteady(){
+		return this.arm.isSteady() && !this.unsteadyUntilUpdate;
+	}
+
+	public boolean isDriveSteady(){
+		return this.drive.isSteady();
+	}
+
 	public boolean isSteady(){
-		return this.drive.isSteady() && this.arm.isSteady() && !this.unsteadyUntilUpdate;
+		return this.isDriveSteady() && this.isArmSteady();
 	}
 
 	public void clearPoint(){

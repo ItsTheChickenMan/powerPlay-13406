@@ -1,15 +1,22 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.control.PIDCoefficients;
+import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.apache.commons.math3.geometry.Vector;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.PIDController;
+import org.firstinspires.ftc.teamcode.lib.utils.PIDControllerRotation;
 import org.firstinspires.ftc.teamcode.lib.utils.Vec2;
 
 /**
@@ -53,9 +60,7 @@ public class AbeDrive {
 	private double aimAtAngle;
 
 	// PID stuff
-	private double aim_p;
-	private double aim_i;
-	private double aim_d;
+	private PIDController pidController;
 
 	// delta settings
 	private double lastError = 0;
@@ -95,10 +100,7 @@ public class AbeDrive {
 
 		this.armOffset = armOffset;
 
-		// assing pid vals
-		this.aim_p = aim_p;
-		this.aim_i = aim_i;
-		this.aim_d = aim_d;
+		this.pidController = new PIDControllerRotation(aim_p, aim_i, aim_d, this.deltaTimer);
 
 		this.gearRatio = gearRatio;
 		this.tickRatio = tickRatio;
@@ -146,6 +148,28 @@ public class AbeDrive {
 
 	public boolean isSteady(){
 		return this.steady;
+	}
+
+	// trajectory methods
+	public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
+		return this.drive.trajectoryBuilder(startPose);
+	}
+
+	public TrajectoryBuilder trajectoryBuilder(Pose2d startPose, boolean reversed) {
+		return this.drive.trajectoryBuilder(startPose, reversed);
+	}
+
+	public TrajectoryBuilder trajectoryBuilder(Pose2d startPose, double startHeading) {
+		return this.drive.trajectoryBuilder(startPose, startHeading);
+	}
+
+	/**
+	 * @brief runs RR followTrajectory
+	 *
+	 * @param trajectory
+	 */
+	public void followTrajectory(Trajectory trajectory) {
+		this.drive.followTrajectory(trajectory);
 	}
 
 	/**
@@ -241,6 +265,9 @@ public class AbeDrive {
 
 		this.aimAtPoint = new Vector2d(x, y);
 
+		// pre-calculate aim at angle for proper error
+		this.aimAtAngle = this.calculateAimAngle(this.getPoseEstimate().vec().minus(this.aimAtPoint));
+
 		this.rotationSpeed = rotationSpeed;
 	}
 
@@ -278,6 +305,19 @@ public class AbeDrive {
 		this.rotationSpeed = rotationSpeed;
 	}
 
+	public double calculateAimAngle(Vector2d offset){
+		double distance = offset.norm();
+
+		return this.calculateAimAngle(offset, distance);
+	}
+
+	public double calculateAimAngle(Vector2d offset, double distance){
+		double angle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
+		angle += Math.PI;
+
+		return angle;
+	}
+
 	public double getAimAtAngleRadians(){
 		return this.aimAtAngle;
 	}
@@ -288,6 +328,14 @@ public class AbeDrive {
 
 	public void aimAtCurrentAngle(){
 		this.aimAtCurrentAngle(1.0);
+	}
+
+	public double getAimErrorRadians(){
+		return this.pidController.getError();
+	}
+
+	public double getAimErrorDegrees(){
+		return Math.toDegrees(this.getAimErrorRadians());
 	}
 
 	/**
@@ -373,7 +421,6 @@ public class AbeDrive {
 		// TODO: should probably switch to RR vectors
 		Vec2 driveVec = new Vec2(strafe, forward);
 
-		// TODO: is this expensive to call here?
 		// get heading
 		Pose2d pose = this.drive.getPoseEstimate();
 		double heading = pose.getHeading();
@@ -444,95 +491,39 @@ public class AbeDrive {
 			// get current pose
 			Pose2d pose = this.getPoseEstimate();
 			Vector2d coords = pose.vec();
-			double heading = pose.getHeading();
 
 			if(this.aimMode == AimMode.POINT) {
 				Vector2d offset = coords.minus(this.aimAtPoint);
 
 				double distance = offset.norm();
 
-				// if distance is less than a certain threshold, only update on an interval to avoid oscillation that happens at close range from the position (therefore the aimAtAngle) changing too rapidly
 				if (distance != 0.0) {
 					// get currently desired angle
-					this.aimAtAngle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
-					this.aimAtAngle += Math.PI;
-
-					//this.lastAimUpdate = time;
+					this.aimAtAngle = this.calculateAimAngle(offset, distance);
 				}
 			}
 
-			// pid
-			// TODO: abstract into class/borrow a better implementation from somewhere
-
-			// get error
-			double error = -AngleHelper.angularDistanceRadians(heading, this.aimAtAngle);
-
-			GlobalStorage.globalTelemetry.addData("error (radians)", error);
-			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
-
-			/*
-			// get approximate rotational difference
-			double distance = AbeConstants.DRIVE_DIAGONAL_RADIUS * error * 1.5;
-
-			distance *= AbeConstants.DRIVE_AIM_RATE_OF_INCREASE;
-
-			GlobalStorage.globalTelemetry.addData("distance", distance);
-
-			if(!Double.isNaN(distance)) {
-				// add rotation to cumulative powers
-				this.addToCumulativeVelocities(distance, -distance, distance, -distance);
-			}*/
-
-			// get error derivative
-			double derivative = (error - this.lastError) / delta;
-
-			GlobalStorage.globalTelemetry.addData("derivative (radians)", derivative);
-
-			// save error
-			this.lastError = error;
-
-			// add to integral
-			if (!Double.isNaN(error)) this.totalError += error * delta;
-
-			// calculate distance falloff
-			double distanceFalloff = 1.0;
-
-			if(this.aimMode == AimMode.POINT) {
-				// FIXME: double calculation
-				Vector2d offset = coords.minus(this.aimAtPoint);
-
-				double distance = offset.norm();
-
-				distanceFalloff = Math.min(1.0, distance / this.distanceFalloffRange);
-			}
+			this.pidController.setTarget(this.aimAtAngle);
 
 			// calculate rotation power
-			double rotation = error * this.aim_p + derivative * this.aim_d + this.totalError * this.aim_i;
+			double rotation = this.pidController.getOutput(this.getPoseEstimate().getHeading());
 
-			// add a little bit to get us to the end (a little more reliable than the integral constant)
-			// FIXME: not really customizable
-			if(error < Math.toRadians(5.0) && error > Math.toRadians(1.0)){
-				rotation += AbeConstants.DRIVE_EXTRA_KICK;
-			}
-
-			rotation *= distanceFalloff;
 			rotation *= this.rotationSpeed;
 
-			this.steady = Math.abs(error) < AbeDrive.STEADY_STATE_ERROR_TOLERANCE && Math.abs(derivative) < AbeDrive.STEADY_STATE_DERIVATIVE_TOLERANCE;
-
-			// FIXME: remove this hack
-			//double maxRotation = 0.5;
-			//rotation = Math.max(Math.min(rotation, maxRotation), -maxRotation);
-
+			// make sure it's a number
 			if (!Double.isNaN(rotation)) {
 				// add rotation to cumulative powers
 				this.addToCumulativeVelocities(rotation, -rotation, rotation, -rotation);
-
-				/*this.frontLeftVelocity += rotation;
-				this.frontRightVelocity -= rotation;
-				this.backLeftVelocity += rotation;
-				this.backRightVelocity -= rotation;*/
 			}
+
+			// determine if we're steady
+			double error = this.pidController.getError();
+			double derivative = this.pidController.getDerivative();
+
+			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
+			GlobalStorage.globalTelemetry.addData("error (radians)", error);
+
+			this.steady = Math.abs(error) < AbeDrive.STEADY_STATE_ERROR_TOLERANCE && Math.abs(derivative) < AbeDrive.STEADY_STATE_DERIVATIVE_TOLERANCE;
 		} else {
 			this.steady = true;
 		}

@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
 public class JunctionHelper {
+	public static final double FIELD_OFFSET = -0.5;
+	public static final double FIELD_SCALE = 23.75;
+
 	public static final double NONE_JUNCTION_HEIGHT_INCHES = -1.0;
 	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 0.56;
 	public static final double LOW_JUNCTION_HEIGHT = 13.5;
@@ -33,8 +36,8 @@ public class JunctionHelper {
 	 * @return array of integers, representing the
 	 */
 	public static int[] rawToSnapped(double x, double y){
-		int cx = (int)Math.round(x / 24.0);
-		int cy = (int)Math.round(y / 24.0);
+		int cx = (int)Math.round((x- JunctionHelper.FIELD_OFFSET) / JunctionHelper.FIELD_SCALE);
+		int cy = (int)Math.round((y- JunctionHelper.FIELD_OFFSET) / JunctionHelper.FIELD_SCALE);
 
 		return new int[]{cx, cy};
 	}
@@ -44,7 +47,7 @@ public class JunctionHelper {
 	}
 
 	public static double[] snappedToRaw(int x, int y){
-		return new double[]{x*24.0, y*24.0};
+		return new double[]{x*JunctionHelper.FIELD_SCALE + JunctionHelper.FIELD_OFFSET, y*JunctionHelper.FIELD_SCALE + JunctionHelper.FIELD_OFFSET};
 	}
 
 	public static double[] snappedToRaw(int[] coords){
@@ -61,7 +64,7 @@ public class JunctionHelper {
 	}
 
 	/**
-	 * @brief Takes coordinates in multiples of 24 (essentially, tile corner coordinates) and returns the junction level, if applicable
+	 * @brief Takes coordinates in multiples of FIELD_SCALE (essentially, tile corner coordinates) and returns the junction level, if applicable
 	 */
 	public static JunctionHelper.Level getJunctionLevel(int x, int y){
 		if((x % 2) == 1 && (y % 2) == 1){

@@ -1,15 +1,10 @@
-package org.firstinspires.ftc.teamcode.opmodes;
+package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
-import org.firstinspires.ftc.teamcode.lib.abe.AbeConfig;
-import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
-import org.firstinspires.ftc.teamcode.lib.abe.AbeDrive;
 
 @TeleOp(group = "Tests")
 public class AimAtPointTest extends LinearOpMode {

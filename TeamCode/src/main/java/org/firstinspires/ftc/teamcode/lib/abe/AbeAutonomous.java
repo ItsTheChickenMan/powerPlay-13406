@@ -1,8 +1,14 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 import org.firstinspires.ftc.teamcode.util.Encoder;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
 
 /**
  * @brief Abstract class containing required values and methods for using AbeBot during the Autonomous period
@@ -18,7 +24,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		RIGHT
 	}
 
-	private enum CycleState {
+	public enum CycleState {
 		GRABBING,
 		LIFTING,
 		AIMING,
@@ -77,12 +83,20 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		}
 	}
 
-	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(36, 1.75);
+	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(59.5, 1.5);
 	public static final Vector2D CONE_STACK_LEFT_POSITION = new Vector2D(AbeAutonomous.CONE_STACK_RIGHT_POSITION.getX(), AbeConstants.FIELD_SIZE_INCHES - CONE_STACK_RIGHT_POSITION.getY());
 
-	private static final double BASE_CONE_STACK_HEIGHT = 3.0;
-	private static final double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
-	private static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
+	protected static final double BASE_CONE_STACK_HEIGHT = 3.0;
+	protected static final double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
+	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
+
+	protected static final double GRAB_ANGLE_ERROR_DEGREES = 25.0;
+	protected static final double EXTENSION_ANGLE_ERROR_DEGREES = 40.0;
+
+	// misc. //
+
+	// april tag detection
+	protected AprilTagDetector aprilTagDetector;
 
 	// states //
 
@@ -101,12 +115,28 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	private int updatesSinceCycleSwitch = 0;
 
 	// methods //
+	public CycleState getCycleState(){
+		return this.cycleState;
+	}
 
-	public void setup(Mode mode, Vector2D junction){
+	public void setup(OpenCvCamera camera, Mode mode, Vector2D junction){
 		initializeAbe();
+
+		if(camera != null){
+			this.aprilTagDetector = new AprilTagDetector(camera);
+		} else {
+			this.aprilTagDetector = null;
+		}
 
 		this.mode = mode;
 		this.junction = junction;
+
+		this.abe.arm.setSlidesRestingPosition(24.0);
+	}
+
+	public static OpenCvCamera createCamera(HardwareMap hardwareMap){
+		int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+		return OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
 	}
 
 	public void cycle(){
@@ -122,9 +152,6 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					// clamp
 					this.abe.arm.clampFingers();
 
-					// decrease cone stack size by 1
-					this.coneStackCount--;
-
 					// schedule switch
 					this.switchCycleSchedule = getScheduledTime(0.5);
 				}
@@ -135,15 +162,19 @@ public abstract class AbeAutonomous extends AbeOpMode {
 			case LIFTING: {
 				// start aiming at junction with elbow
 				if(this.updatesSinceCycleSwitch == 1){
+					double offset = 1.5;
+
+					offset *= this.mode == Mode.LEFT ? -1 : 1;
+
 					// FIXME: fix slides retracting too early to replace this hack
-					this.abe.aimAt(this.getConeStackPosition().getX(), 16.0, this.getConeStackPosition().getY());
+					this.abe.aimAt(this.getConeStackPosition().getX(), 18.0, this.getConeStackPosition().getY() + offset);
 
 					//this.aimAtJunctionRaw(this.junction.getX(), this.junction.getY(), false, true, false);
 				}
 
-				telemetry.addData("arm height", this.abe.getArmHeight());
+				//telemetry.addData("arm height", this.abe.getArmHeight());
 
-			// schedule switch as soon as elbow is safe distance upward
+				// schedule switch as soon as elbow is safe distance upward
 				if(this.abe.getArmHeight() > this.getTopConeStackHeight()+AbeAutonomous.SAFE_CONE_LIFTING_DISTANCE && !isEventScheduled(this.switchCycleSchedule)){
 					this.switchCycleSchedule = getScheduledTime(0.0);
 				}
@@ -157,8 +188,8 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					this.aimAtJunctionRaw(this.junction.getX(), this.junction.getY(), true, true, false);
 				}
 
-				// schedule switch when drive and arm are stable
-				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule)){
+				// schedule switch when drive is close enough
+				if(this.updatesSinceCycleSwitch > 1 && Math.abs(this.abe.drive.getAimErrorDegrees()) < AbeAutonomous.EXTENSION_ANGLE_ERROR_DEGREES && !isEventScheduled(this.switchCycleSchedule)){
 					this.switchCycleSchedule = getScheduledTime(0.0);
 				}
 
@@ -197,8 +228,12 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				}
 
 				// switch when all is steady
-				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule)){
+				if(this.updatesSinceCycleSwitch > 1 && Math.abs(this.abe.drive.getAimErrorDegrees()) < AbeAutonomous.GRAB_ANGLE_ERROR_DEGREES && !isEventScheduled(this.switchCycleSchedule)){
 					this.switchCycleSchedule = getScheduledTime(0.0);
+
+					// decrease cone stack size by 1
+					// logically this should happen after the LIFTING state, but then some logic gets buggy so this is fine
+					this.coneStackCount--;
 				}
 
 				break;
