@@ -129,21 +129,29 @@ public class AbeManual extends LinearOpMode {
 
 			// wrist...
 			telemetry.addData("elbow", this.abe.arm.getElbowAngleDegrees());
-			telemetry.update();
 
 			// arm update
 			this.abe.arm.update();
 
 			// drive logic //
-			double forward = -gamepad1.left_stick_y*0.6;
-			double strafe = gamepad1.left_stick_x*0.6;
+
+			// drive
+			double forward = -gamepad1.left_stick_y;
+			double strafe = gamepad1.left_stick_x;
 			double rotation = gamepad1.right_stick_x*0.6;
-			double speed = 1.35 - gamepad1.right_trigger;
+
+			// determine speed (we use both triggers because it's hard to remember which is which sometimes)
+			double speedTrigger = Math.max(gamepad1.left_trigger, gamepad1.right_trigger);
+			double speed = 30 * (1.35 - speedTrigger);
 
 			// FIXME: redo for SampleMecanumDrive
 			this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
 			this.abe.drive.rotate(rotation*speed);
 			this.abe.drive.update();
+
+			telemetry.addData("parallel", 1);
+			telemetry.addData("perpendicular", 1);
+			telemetry.update();
 		}
 	}
 }

@@ -63,6 +63,8 @@ public class PIDController {
 
 		double error = this.getError();
 
+		if(Double.isNaN(error)) return 0.0;
+
 		double p = error;
 
 		double d = (measured - this.lastError) / this.delta;

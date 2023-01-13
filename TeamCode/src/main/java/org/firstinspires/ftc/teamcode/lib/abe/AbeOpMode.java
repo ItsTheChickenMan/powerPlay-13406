@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**
@@ -87,6 +89,10 @@ public abstract class AbeOpMode extends LinearOpMode {
 		this.abe.setPoseEstimate(x, y, r);
 	}
 
+	public void setStartPoint(Pose2d pose){
+		this.abe.setPoseEstimate(pose);
+	}
+
 	public void aimAtJunctionRaw(double x, double y, boolean doDrive, boolean doElbow, boolean doSlides){
 		// get height
 		double height = JunctionHelper.getJunctionHeightFromRaw(x, y);
@@ -155,5 +161,30 @@ public abstract class AbeOpMode extends LinearOpMode {
 		} catch (Exception e) {
 			logError(e.getMessage());
 		}
+	}
+
+	/**
+	 * @brief get the bot's current state and save appropriate values to GlobalStorage
+	 */
+	public void saveStateToGlobalStorage(){
+		GlobalStorage.currentElbowAngleRadians = this.abe.arm.getElbowAngleRadians();
+		GlobalStorage.currentSlidesExtension = this.abe.arm.getSlidesExtension();
+		GlobalStorage.currentPose = this.abe.drive.getPoseEstimate();
+	}
+
+	/**
+	 * @brief load the bot's current state from GlobalStorage.
+	 *
+	 * Does not reset GlobalStorage
+	 */
+	public void loadStateFromGlobalStorage(){
+		// set elbow angle
+		this.abe.arm.setElbowOffsetRadians(GlobalStorage.currentElbowAngleRadians);
+
+		// set slides extension
+		this.abe.arm.setSlidesExtensionOffset(GlobalStorage.currentSlidesExtension - this.abe.arm.getSlidesBaseExtension());
+
+		// set start point
+		this.setStartPoint(GlobalStorage.currentPose);
 	}
 }

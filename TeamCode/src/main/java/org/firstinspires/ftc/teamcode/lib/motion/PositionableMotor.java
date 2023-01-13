@@ -3,10 +3,12 @@ package org.firstinspires.ftc.teamcode.lib.motion;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+
 public class PositionableMotor {
 	// motor
 	private DcMotorEx motor;
-	private double tickOffset = 0; // current tick offset from the number returned by getCurrentPosition, added to whenever resetEncoders is called
+	public double tickOffset = 0; // current tick offset from the number returned by getCurrentPosition, added to whenever resetEncoders is called
 
 	// details
 	private double gearRatio; // NOTE: ratio of driver gear rotations : driven gear rotations
@@ -37,18 +39,6 @@ public class PositionableMotor {
 		return degrees / 360.0;
 	}
 
-	public static double rotationsToTicks(double rotations, double tickRatio){
-		return rotations * tickRatio;
-	}
-
-	public static double degreesToTicks(double degrees, double tickRatio){
-		return PositionableMotor.rotationsToTicks(PositionableMotor.degreesToRotations(degrees), tickRatio);
-	}
-
-	public static double radiansToTicks(double radians, double tickRatio){
-		return PositionableMotor.rotationsToTicks(PositionableMotor.radiansToRotations(radians), tickRatio);
-	}
-
 	public PositionableMotor(DcMotorEx motor, double gearRatio, double tickRatio){
 		this.motor = motor;
 		this.gearRatio = gearRatio;
@@ -57,8 +47,10 @@ public class PositionableMotor {
 		// brake at zero
 		this.motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-		// reset encoders
-		this.resetEncoders();
+		// hard reset encoders
+		this.hardResetEncoders();
+
+		this.tickOffset = 0;
 
 		// enable
 		this.enable();
@@ -72,6 +64,30 @@ public class PositionableMotor {
 		this.lowerLimit = lowerLimit;
 		this.upperLimit = upperLimit;
 		this.limitsEnabled = true;
+	}
+
+	public double rotationsToTicks(double rotations){
+		return rotations * this.tickRatio * this.gearRatio;
+	}
+
+	public double ticksToRotations(double ticks){
+		return ticks / this.tickRatio / this.gearRatio;
+	}
+
+	public double degreesToTicks(double degrees){
+		return this.rotationsToTicks(PositionableMotor.degreesToRotations(degrees));
+	}
+
+	public double ticksToDegrees(double ticks){
+		return this.ticksToRotations(ticks) * 360;
+	}
+
+	public double radiansToTicks(double radians){
+		return this.rotationsToTicks(PositionableMotor.radiansToRotations(radians));
+	}
+
+	public double ticksToRadians(double ticks){
+		return this.ticksToRotations(ticks) * 2*Math.PI;
 	}
 
 	/**
@@ -100,12 +116,43 @@ public class PositionableMotor {
 		this.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 	}
 
+	/**
+	 * @brief Reset the motor encoders without saving the tick offset
+	 */
+	public void hardResetEncoders(){
+		this.motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+	}
+
+	public void setAngleOffsetRotations(double offset){
+		this.tickOffset = this.rotationsToTicks(offset);
+	}
+
+	/**
+	 * @brief Set the internal tickOffset to some value based on a radian offset.
+	 *
+	 * @param offset offset in radians
+	 */
+	public void setAngleOffsetRadians(double offset){
+		this.tickOffset = this.radiansToTicks(offset);
+	}
+
+	/**
+	 * @brief Set the internal tickOffset to some value based on a degree offset.
+	 *
+	 * @param offset offset in degrees
+	 */
+	public void setAngleOffsetDegrees(double offset){
+		this.tickOffset = this.degreesToTicks(offset);
+	}
+
 	public void addToAngleOffsetRadians(double offset){
-		this.tickOffset += PositionableMotor.radiansToTicks(offset, this.tickRatio);
+		this.tickOffset += this.radiansToTicks(offset);
 	}
 
 	public void addToAngleOffsetDegrees(double offset){
-		this.tickOffset += PositionableMotor.degreesToTicks(offset, this.tickRatio);
+		double offsetTicks = this.degreesToTicks(offset);
+
+		this.tickOffset += offsetTicks;
 	}
 
 	public void disable(){
@@ -226,9 +273,10 @@ public class PositionableMotor {
 		double drivingVelocity = velocity * this.gearRatio;
 		double velocityTicks = drivingVelocity * this.tickRatio;
 
-		this.resetEncoders();
+		// offset
+		double offset = this.rotationsToTicks(this.getRotations());
 
-		this.motor.setTargetPosition((int)ticks);
+		this.motor.setTargetPosition((int)(ticks + offset - this.tickOffset));
 
 		this.motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
@@ -293,8 +341,6 @@ public class PositionableMotor {
 		// velocity calculation
 		double drivingVelocity = rotationsPerSecond * this.gearRatio;
 		double drivingTicks = drivingVelocity * this.tickRatio;
-
-		this.resetEncoders();
 
 		this.motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 

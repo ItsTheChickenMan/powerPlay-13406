@@ -23,6 +23,27 @@ public class LinearSlidesEx {
 		}
 	}
 
+	/**
+	 * @FIXME this sucks
+	 */
+	public double getBaseExtension(){
+		return this.slides[0].getBaseExtension();
+	}
+
+	public double getMaxExtension(){
+		return this.slides[0].getMaxExtension();
+	}
+
+	public double getTravel(){
+		return this.slides[0].getTravel();
+	}
+
+	public void setExtensionOffset(double offset){
+		for(LinearSlides slide : this.slides){
+			slide.setExtensionOffset(offset);
+		}
+	}
+
 	public void freeze(){
 		for(LinearSlides slide : this.slides){
 			slide.freeze();

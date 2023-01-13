@@ -86,6 +86,9 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(59.5, 1.5);
 	public static final Vector2D CONE_STACK_LEFT_POSITION = new Vector2D(AbeAutonomous.CONE_STACK_RIGHT_POSITION.getX(), AbeConstants.FIELD_SIZE_INCHES - CONE_STACK_RIGHT_POSITION.getY());
 
+	public static final Vector2D[] PARKING_SPOTS_LEFT = {new Vector2D(59.5, 59.5), new Vector2D(59.5, 40), new Vector2D(59.5, 8)};
+	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(62, 62), new Vector2D(62, 40), new Vector2D(62, 7)};
+
 	protected static final double BASE_CONE_STACK_HEIGHT = 3.0;
 	protected static final double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
 	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
@@ -119,6 +122,10 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		return this.cycleState;
 	}
 
+	public void setCycleState(CycleState state){
+		this.cycleState = state;
+	}
+
 	public void setup(OpenCvCamera camera, Mode mode, Vector2D junction){
 		initializeAbe();
 
@@ -137,6 +144,14 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	public static OpenCvCamera createCamera(HardwareMap hardwareMap){
 		int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
 		return OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+	}
+
+	public Vector2D getParkingSpot(int id){
+		if(this.mode == Mode.LEFT){
+			return AbeAutonomous.PARKING_SPOTS_LEFT[id];
+		} else {
+			return AbeAutonomous.PARKING_SPOTS_RIGHT[id];
+		}
 	}
 
 	public void cycle(){
@@ -216,6 +231,10 @@ public abstract class AbeAutonomous extends AbeOpMode {
 
 					// schedule switch after short time
 					this.switchCycleSchedule = getScheduledTime(0.25);
+
+					// decrease cone stack size by 1
+					// logically this should happen after the LIFTING state, but then some logic gets buggy so this is fine
+					this.coneStackCount--;
 				}
 
 				break;
@@ -230,10 +249,6 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				// switch when all is steady
 				if(this.updatesSinceCycleSwitch > 1 && Math.abs(this.abe.drive.getAimErrorDegrees()) < AbeAutonomous.GRAB_ANGLE_ERROR_DEGREES && !isEventScheduled(this.switchCycleSchedule)){
 					this.switchCycleSchedule = getScheduledTime(0.0);
-
-					// decrease cone stack size by 1
-					// logically this should happen after the LIFTING state, but then some logic gets buggy so this is fine
-					this.coneStackCount--;
 				}
 
 				break;

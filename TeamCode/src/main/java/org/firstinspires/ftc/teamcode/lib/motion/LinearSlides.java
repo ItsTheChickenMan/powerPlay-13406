@@ -28,7 +28,7 @@ public class LinearSlides {
 	 * @param driveMotor
 	 * @param retractedLength
 	 * @param maxLength
-	 * @param spoolRadius
+	 * @param spoolCircumference
 	 */
 	public LinearSlides(PositionableMotor driveMotor, double retractedLength, double maxLength, double spoolCircumference, double extensionFactor) {
 		this.driveMotor = driveMotor;
@@ -37,6 +37,41 @@ public class LinearSlides {
 		this.spoolCircumference = spoolCircumference;
 		this.extensionFactor = extensionFactor;
 		this.inverseExtensionFactor = 1.0 / this.extensionFactor;
+	}
+
+	public static double inchesToRotations(double inches, double spoolCircumference){
+		return inches / spoolCircumference;
+	}
+
+	public double getBaseExtension(){
+		return this.retractedLength;
+	}
+
+	public double getMaxExtension(){
+		return this.maxLength;
+	}
+
+	public double getTravel(){
+		return this.getMaxExtension() - this.getBaseExtension();
+	}
+
+	/**
+	 * @brief Change where the slides think they are.
+	 *
+	 * An offset of 2, for instance, will tell the slides that they are actually extended 2 inches further than they currently think they are, without moving the slides.
+	 * If a prior call to getExtension() returned a value of 16, a call to getExtension() following setExtensionOffset(2) would return 18.
+	 * All other methods use the same offset.
+	 *
+	 * @param offset offset in inches
+	 */
+	public void setExtensionOffset(double offset){
+		// calculate rotations
+		double rotations = LinearSlides.inchesToRotations(offset, this.spoolCircumference);
+
+		// multiply by extension factor
+		rotations *= this.inverseExtensionFactor;
+
+		this.driveMotor.setAngleOffsetRotations(rotations);
 	}
 
 	/**
@@ -107,8 +142,8 @@ public class LinearSlides {
 		}
 
 		// calculate rotations
-		double rotations = (inches - this.retractedLength) / this.spoolCircumference;
-		double rotationsVelocity = velocity / this.spoolCircumference;
+		double rotations = LinearSlides.inchesToRotations(inches - this.retractedLength, this.spoolCircumference);
+		double rotationsVelocity = LinearSlides.inchesToRotations(velocity, this.spoolCircumference);
 
 		rotations *= this.inverseExtensionFactor;
 
@@ -134,7 +169,7 @@ public class LinearSlides {
 		currentDesiredVelocity = velocity;
 
 		// calculate rotations
-		double rotationsVelocity = velocity / this.spoolCircumference;
+		double rotationsVelocity = LinearSlides.inchesToRotations(velocity, this.spoolCircumference);
 
 		this.driveMotor.rotateSpeed(rotationsVelocity);
 	}

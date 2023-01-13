@@ -21,15 +21,22 @@ public class GlobalStorage {
     // current slides extension
     public static double currentSlidesExtension;
 
+    // did we do auto?
+    // generally going to be yes
+    public static boolean didAuto;
+
     public static void clearGlobalStorage(){
         GlobalStorage.globalTelemetry = null;
         GlobalStorage.currentPose = new Pose2d();
         GlobalStorage.currentElbowAngleRadians = 0.0;
         GlobalStorage.currentSlidesExtension = AbeConstants.SLIDE_BASE_LENGTH_INCHES;
+        GlobalStorage.didAuto = false;
     }
 
-    /**
-     * @brief HashMap for storing numbers to string keys
-     */
-    //public static final Map<String, Double> numberStorage = new HashMap<String, Double>();
+    public static void logGlobalStorage(Telemetry telemetry){
+        telemetry.addData("globalTelemetry?", GlobalStorage.globalTelemetry != null);
+        telemetry.addData("current pose", GlobalStorage.currentPose != null ? GlobalStorage.currentPose.toString() : "null");
+        telemetry.addData("current elbow angle", GlobalStorage.currentElbowAngleRadians);
+        telemetry.addData("current slides extension", GlobalStorage.currentSlidesExtension);
+    }
 }

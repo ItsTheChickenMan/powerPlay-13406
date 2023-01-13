@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /**
  * @brief PIDController specifically for rotation (just uses a special error method, nothing else)
  */
-public class PIDControllerRotation extends PIDController{
+public class PIDControllerRotation extends PIDController {
 	public PIDControllerRotation(double p, double i, double d){
 		super(p, i, d);
 	}

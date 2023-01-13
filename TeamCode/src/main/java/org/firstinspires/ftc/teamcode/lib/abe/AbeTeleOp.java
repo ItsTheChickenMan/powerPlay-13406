@@ -73,12 +73,37 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	public void checkDriveRotation(double speed){
 		// aim vector for drive rotation
-		Vector2d aimVector = new Vector2d(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
-		double heading = aimVector.angle();
+		Vector2D aimVector = new Vector2D(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
+
+		/*
+		if(aimVector.getNorm() < 0.25) return;
+
+		aimVector = aimVector.normalize();
+
+		// get rotational power
+		double rotationSpeed = 10.0;
+
+		Vector2D forward = this.abe.drive.getForwardVector();
+
+		double rot = (1.0 - forward.dotProduct(aimVector)) * rotationSpeed;
+
+		double forwardVectorRotation = Math.atan2(forward.getY(), forward.getX());
+		double aimVectorRotation = Math.atan2(aimVector.getY(), aimVector.getX());
+
+		GlobalStorage.globalTelemetry.addData("forward vector rotation", Math.toDegrees(forwardVectorRotation));
+		GlobalStorage.globalTelemetry.addData("aim vector rotation", Math.toDegrees(aimVectorRotation));
+
+		// get direction
+		double direction = AngleHelper.angularDistanceRadians(forwardVectorRotation, aimVectorRotation);
+		direction = Math.signum(direction);
+
+		this.abe.drive.rotate(rot * direction);*/
+
+		double heading = AbeDrive.apacheVectorToRRVector(aimVector).angle();
 
 		// aim at where the stick is pointing, otherwise maintain current heading
 		// this effectively creates a "driver centric rotation" where the direction of the joystick more or less dictates the direction that the front will travel in rotation
-		if(aimVector.norm() > 0.5) {
+		if(aimVector.getNorm() > 0.5) {
 			this.lockPointSet = false;
 
 			this.abe.drive.aimAtAngleRadians(heading, speed);
@@ -95,7 +120,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	public void checkJunctionAim(){
 		// get aim vector
-		double distance = 12.0;
+		double distance = 14.0;
 
 		Vector2D desiredAimVector = new Vector2D(-gamepad2.left_stick_y, -gamepad2.left_stick_x);
 
@@ -132,7 +157,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		this.abe.clearPoint();
 
 		// tell drive to lock current orientation
-		this.abe.drive.aimAtCurrentAngle();
+		//this.abe.drive.aimAtCurrentAngle();
 	}
 
 	public void cleanupGrabbingMode(){
@@ -178,7 +203,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 				// check for correction
 				// TODO: add correction rate to constants
-				double correctionRate = 7; // in inches / second
+				double correctionRate = 5; // in inches / second
 
 				Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
 
@@ -252,21 +277,21 @@ public abstract class AbeTeleOp extends AbeOpMode {
 			}
 
 			case GRABBING: {
-				// do drive rotation calculation, accounting for slowmode settingre
+				// do drive rotation calculation, accounting for slowmode setting
 				this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
 				boolean down = gamepad2.right_trigger > 0.05;
 
 				if(down){
-					this.abe.arm.aimAt(20, 5.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
-				} else {
-					this.abe.arm.aimAt(6, 20);
+					this.abe.arm.aimAt(22, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 
 					if(gamepad2.dpad_down){
-						this.abe.arm.addToElbowOffsetDegrees(-1 * delta);
+						this.abe.arm.addToElbowOffsetDegrees(2 * delta);
 					} else if (gamepad2.dpad_up){
-						this.abe.arm.addToElbowOffsetDegrees(1 * delta);
+						this.abe.arm.addToElbowOffsetDegrees(-2 * delta);
 					}
+				} else {
+					this.abe.arm.aimAt(6, 20);
 				}
 
 				// check for grab

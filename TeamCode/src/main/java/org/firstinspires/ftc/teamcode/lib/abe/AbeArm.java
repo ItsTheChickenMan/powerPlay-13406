@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**
  * @brief The entire arm (angle adjuster, slides, wrist, and fingers) wrapped into one easy-to-use class
@@ -21,8 +22,8 @@ public class AbeArm {
 
 	// members //
 
-	private AngleAdjuster elbow;
-	public LinearSlidesEx slides;
+	public AngleAdjuster elbow;
+	private LinearSlidesEx slides;
 
 	private PositionableServo wrist;
 	private PositionableServo fingers;
@@ -82,6 +83,14 @@ public class AbeArm {
 
 	// GETTERS & SETTERS //
 
+	public void setElbowOffsetRadians(double offset){
+		this.elbow.setAngleOffsetRadians(offset);
+	}
+
+	public void setElbowOffsetDegrees(double offset){
+		this.elbow.setAngleOffsetDegrees(offset);
+	}
+
 	public void addToElbowOffsetRadians(double offset){
 		this.elbow.addToAngleOffsetRadians(offset);
 	}
@@ -98,6 +107,14 @@ public class AbeArm {
 		this.slidesRestingPosition = AbeConstants.SLIDE_BASE_LENGTH_INCHES + 0.75;
 	}
 
+	public double getSlidesExtension(){
+		return this.slides.getExtension();
+	}
+
+	public double getSlidesRelativeExtension(){
+		return this.slides.getRelativeExtension();
+	}
+
 	public boolean isSteady(){
 		return this.steady;
 	}
@@ -112,6 +129,56 @@ public class AbeArm {
 		double slidesExtension = this.slides.getExtension();
 
 		return Math.sin(elbowAngle + Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / slidesExtension)) * Math.sqrt(slidesExtension*slidesExtension + AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES);
+	}
+
+	public double calculateAimSlidesLength(double x, double y){
+		return Math.sqrt(
+						x*x + y*y - AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES
+		);
+	}
+
+	public double calculateAimElbowAngleRadians(double x, double y, double slidesLength){
+		double desiredAngle = this.calculateAimElbowAngleNoSagRadians(x, y, slidesLength);
+
+		// account for torque
+		double sagCounter = this.calculateSagCounter(desiredAngle, slidesLength);
+
+		return desiredAngle + sagCounter;
+	}
+
+	public double calculateAimElbowAngleRadians(double x, double y){
+		double slidesLength = this.calculateAimSlidesLength(x, y);
+
+		return this.calculateAimElbowAngleRadians(x, y, slidesLength);
+	}
+
+	public double calculateAimElbowAngleNoSagRadians(double x, double y, double slidesLength){
+		double desiredAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / slidesLength);
+
+		return desiredAngle;
+	}
+
+	public double calculateAimElbowAngleNoSagRadians(double x, double y){
+		double slidesLength = this.calculateAimSlidesLength(x, y);
+
+		return this.calculateAimElbowAngleNoSagRadians(x, y, slidesLength);
+	}
+
+	public double calculateSagCounter(double elbowAngle, double slidesLength){
+		double torque =
+						Math.cos(elbowAngle)*(slidesLength*AbeConstants.ARM_MASS_LEFT_KG - AbeConstants.ARM_OFFSET_RIGHT_INCHES*AbeConstants.ARM_MASS_RIGHT_KG)*0.5
+										-	Math.sin(elbowAngle)*AbeConstants.TRUE_ELBOW_RADIUS_INCHES*(AbeConstants.ARM_MASS_LEFT_KG+AbeConstants.ARM_MASS_RIGHT_KG - 0.5*AbeConstants.ELBOW_MASS_KG)
+										+	AbeConstants.TORQUE_INTERCEPT;
+
+		double sagCounter = AbeConstants.ANGULAR_CORRECTION_PER_KG_IN * torque;
+
+		return sagCounter;
+	}
+
+	public double calculateSagCounter(double distance, JunctionHelper.Level level){
+		double correction = AbeConstants.getPrecalculatedElbowSag(distance, level);
+
+		return correction;
 	}
 
 	public void aimAt(double x, double y){
@@ -136,22 +203,42 @@ public class AbeArm {
 
 		// set slides extension
 		// TODO: account for slide bending?
-		this.aimSlidesLength = Math.sqrt(
-						x*x + y*y - AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES
-		);
+		this.aimSlidesLength = this.calculateAimSlidesLength(x, y);
 
 		// set elbow angle
-		this.aimElbowAngle = Math.atan(y/x) - Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / this.aimSlidesLength);
+		this.aimElbowAngle = this.calculateAimElbowAngleNoSagRadians(x, y, this.aimSlidesLength);
 
-		// determine expected angular adjustment to account for falloff from stress
-		double stressFactor = Math.cos(this.aimElbowAngle)*this.aimSlidesLength - AbeConstants.ELBOW_TORQUE_FACTOR*AbeConstants.ELBOW_RADIUS_INCHES*Math.sin(this.aimElbowAngle);
+		// get expected falloff counter at 0 degrees
+		// approximate torque on elbow
+		//double sagCounter = this.calculateSagCounter(this.aimElbowAngle, this.aimSlidesLength);
+		// FIXME: hacky
+		double h = y + AbeConstants.ARM_VERTICAL_OFFSET_INCHES - AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
+		JunctionHelper.Level level = JunctionHelper.rawHeightToJunctionHeight(h);
 
-		double falloffCounter = AbeConstants.getExpectedElbowSag(stressFactor);
+		double sagCounter = this.calculateSagCounter(x, level);
 
-		// adjust wrist for falloff counter
-		this.positionWristRadians(-falloffCounter);
+		GlobalStorage.globalTelemetry.addData("height", h);
 
-		this.aimElbowAngle += falloffCounter;
+		if(level == JunctionHelper.Level.GROUND){
+			GlobalStorage.globalTelemetry.addLine("GROUND");
+		} else if(level == JunctionHelper.Level.LOW){
+			GlobalStorage.globalTelemetry.addLine("LOW");
+		} else if(level == JunctionHelper.Level.MEDIUM){
+			GlobalStorage.globalTelemetry.addLine("MEDIUM");
+		} else if(level == JunctionHelper.Level.HIGH){
+			GlobalStorage.globalTelemetry.addLine("HIGH");
+		} else {
+			GlobalStorage.globalTelemetry.addLine("NONE");
+		}
+
+		GlobalStorage.globalTelemetry.addData("sagCounter", sagCounter);
+
+		// adjust elbow for sag
+		this.aimElbowAngle += sagCounter;
+
+		// adjust wrist for sag
+		// (if this doesn't happen, it goes too low thinking that the elbow angle is higher than the true elbow angle)
+		this.wristAngle = -sagCounter;
 
 		//this.isAiming = false;
 		this.isAiming = true;
@@ -270,6 +357,14 @@ public class AbeArm {
 		this.elbow.rotateSpeedRadians(velocity);
 	}
 
+	public double getSlidesBaseExtension(){
+		return this.slides.getBaseExtension();
+	}
+
+	public void setSlidesExtensionOffset(double offset){
+		this.slides.setExtensionOffset(offset);
+	}
+
 	/**
 	 * @brief Extend slides to a certain position, if manual control is enabled
 	 *
@@ -325,7 +420,7 @@ public class AbeArm {
 	 * @param angle angle, in degrees
 	 */
 	public void positionWristDegrees(double angle){
-		this.wristAngle = angle;
+		this.wristAngle = angle+AbeConstants.WRIST_BASE_ANGLE_DEGREES;
 	}
 
 	/**
@@ -334,7 +429,7 @@ public class AbeArm {
 	 * @param angle, in radians
 	 */
 	public void positionWristRadians(double angle){
-		this.wristAngle = Math.toDegrees(angle);
+		this.wristAngle = Math.toDegrees(angle+AbeConstants.WRIST_BASE_ANGLE_DEGREES);
 	}
 
 	/**
@@ -397,9 +492,9 @@ public class AbeArm {
 
 		// update slides length/elbow angle+
 		if(this.isAiming() && !this.isManualControlEnabled()){
-			// falloff from 55 degrees/second at low extension (<24 inches) to 35 degrees/second at high extension (>36 inches)
-			double maxSpeed = Math.toRadians(55.0);
-			double minSpeed = Math.toRadians(35.0);
+			// falloff from max speed to min speed based on extension
+			double maxSpeed = Math.toRadians(90);
+			double minSpeed = Math.toRadians(45);
 
 			double minExtension = 24.0;
 			double maxExtension = 36.0;
@@ -411,14 +506,19 @@ public class AbeArm {
 			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, speed);
 
 			double slidesLength = this.aimSlidesLength;
-			double slideSpeed = 30.0;
+			double slidesSpeed = 30.0;
 
 			if(this.doSlidesAim){
-				this.slides.extendTo(this.aimSlidesLength, 30.0);
+				this.slides.extendTo(this.aimSlidesLength, slidesSpeed);
 			} else {
 				slidesLength = this.slidesRestingPosition;
-				this.slides.extendTo(slidesLength, 30.0);
+				this.slides.extendTo(slidesLength, slidesSpeed);
 			}
+
+			GlobalStorage.globalTelemetry.addData("aimSlidesLength", this.aimSlidesLength);
+			GlobalStorage.globalTelemetry.addData("slidesLength", this.slides.getExtension());
+			GlobalStorage.globalTelemetry.addData("aimElbowAngle", Math.toDegrees(this.aimElbowAngle));
+			GlobalStorage.globalTelemetry.addData("elbowAngle", this.elbow.getAngleDegrees());
 
 			// check steady state
 
@@ -449,7 +549,7 @@ public class AbeArm {
 		//this.elbow.check();
 
 		// check slides
-		this.slides.checkForBadExtension();
+		//this.slides.checkForBadExtension();
 
 		// update wrist
 		this.updateWrist();

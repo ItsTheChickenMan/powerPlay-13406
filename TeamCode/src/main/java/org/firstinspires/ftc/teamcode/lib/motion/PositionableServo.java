@@ -52,7 +52,7 @@ public class PositionableServo {
 		angle += this.maxRange/2.;
 
 		// translate angle to position via linear interpolation
-		double position = angle / (this.maxRange);
+		double position = angle / this.maxRange;
 
 		// set position
 		this.servo.setPosition(position);

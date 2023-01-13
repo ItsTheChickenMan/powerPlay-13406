@@ -10,10 +10,7 @@ public class CheckGlobalStorage extends LinearOpMode {
 	@Override
 	public void runOpMode() throws InterruptedException {
 		while(!isStarted() && !isStopRequested()){
-			telemetry.addData("globalTelemetry?", GlobalStorage.globalTelemetry != null);
-			telemetry.addData("current pose", GlobalStorage.currentPose != null ? GlobalStorage.currentPose.toString() : "null");
-			telemetry.addData("current elbow angle", GlobalStorage.currentElbowAngleRadians);
-			telemetry.addData("current slides extension", GlobalStorage.currentSlidesExtension);
+			GlobalStorage.logGlobalStorage(telemetry);
 
 			telemetry.update();
 		}

@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
 /**
  * @brief Class for controlling an ABE bot (aka our power play bot v1)
@@ -241,18 +242,23 @@ public class AbeBot {
 		if(this.isAiming()) {
 			Pose2d pose = this.drive.getPoseEstimate();
 
-			double offsetX = pose.getX() - this.aimAtPoint.getX();
-			double offsetZ = pose.getY() - this.aimAtPoint.getZ();
+			double offsetX = this.aimAtPoint.getX() - pose.getX();
+			double offsetZ = this.aimAtPoint.getZ() - pose.getY();
+
+			GlobalStorage.globalTelemetry.addData("offsetX", offsetX);
+			GlobalStorage.globalTelemetry.addData("offsetZ", offsetZ);
 
 			// get arm values and stuff
 			double botDistance2 = offsetX * offsetX + offsetZ * offsetZ;
 			double armDistance = Math.sqrt(botDistance2 - AbeConstants.ARM_LATERAL_OFFSET_INCHES * AbeConstants.ARM_LATERAL_OFFSET_INCHES) - AbeConstants.ARM_LONGINAL_OFFSET_INCHES;
 			double armHeight = this.aimAtPoint.getY() - AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
 
+			GlobalStorage.globalTelemetry.addData("arm height", armHeight);
+			GlobalStorage.globalTelemetry.addData("aim height", this.aimAtPoint.getY());
+
 			armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
 
-			//AimAtPointTest.globalTelemetry.addData("armDistance", armDistance);
-			//AimAtPointTest.globalTelemetry.addData("armHeight", armHeight);
+			GlobalStorage.globalTelemetry.addData("arm distance", armDistance);
 
 			this.arm.aimAt(armDistance, armHeight, this.doElbowAim, this.doSlidesAim);
 		}

@@ -3,26 +3,35 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
+import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeTeleOp;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
 @TeleOp(group = "Comp")
 public class AbeAutomatic extends AbeTeleOp {
-    @Override
-    public void runOpMode() throws InterruptedException {
-        GlobalStorage.globalTelemetry = telemetry;
+	@Override
+	public void runOpMode() throws InterruptedException {
+		GlobalStorage.globalTelemetry = telemetry;
 
-        setup();
+		setup();
 
-        // note: roadrunner coordinates
-        setStartPoint(8.5, 36, 0);
+		// load state
+		this.loadStateFromGlobalStorage();
 
-        waitForStart();
+		// note: roadrunner coordinates
+		if(!GlobalStorage.didAuto) {
+			setStartPoint(9.875, 33, 0);
+		}
 
-        while(opModeIsActive()) {
-            update();
+		waitForStart();
 
-            telemetry.update();
-        }
-    }
+		while(opModeIsActive()) {
+			update();
+
+			telemetry.addData("tickOffset", this.abe.arm.elbow.tickOffset);
+			telemetry.addData("tickOffsetDegrees", (this.abe.arm.elbow.tickOffset / AbeConstants.ELBOW_TICK_RATIO / AbeConstants.ELBOW_GEAR_RATIO) * 360.0);
+
+			telemetry.update();
+		}
+	}
 }

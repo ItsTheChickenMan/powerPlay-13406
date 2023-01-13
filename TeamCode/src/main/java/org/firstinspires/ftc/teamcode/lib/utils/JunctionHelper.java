@@ -6,9 +6,9 @@ public class JunctionHelper {
 
 	public static final double NONE_JUNCTION_HEIGHT_INCHES = -1.0;
 	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 0.56;
-	public static final double LOW_JUNCTION_HEIGHT = 13.5;
-	public static final double MEDIUM_JUNCTION_HEIGHT = 23.5;
-	public static final double HIGH_JUNCTION_HEIGHT = 33.5;
+	public static final double LOW_JUNCTION_HEIGHT_INCHES = 13.5;
+	public static final double MEDIUM_JUNCTION_HEIGHT_INCHES = 23.5;
+	public static final double HIGH_JUNCTION_HEIGHT_INCHES = 33.5;
 
 	public static enum Level {
 		NONE,
@@ -86,21 +86,43 @@ public class JunctionHelper {
 		return JunctionHelper.getJunctionHeight(snapped[0], snapped[1]);
 	}
 
-	public static double getJunctionHeight(int x, int y){
-		Level level = JunctionHelper.getJunctionLevel(x, y);
-
+	public static double getJunctionHeight(JunctionHelper.Level level){
 		switch(level){
 			case GROUND:
 				return JunctionHelper.GROUND_JUNCTION_HEIGHT_INCHES;
 			case LOW:
-				return JunctionHelper.LOW_JUNCTION_HEIGHT;
+				return JunctionHelper.LOW_JUNCTION_HEIGHT_INCHES;
 			case MEDIUM:
-				return JunctionHelper.MEDIUM_JUNCTION_HEIGHT;
+				return JunctionHelper.MEDIUM_JUNCTION_HEIGHT_INCHES;
 			case HIGH:
-				return JunctionHelper.HIGH_JUNCTION_HEIGHT;
+				return JunctionHelper.HIGH_JUNCTION_HEIGHT_INCHES;
 			case NONE:
 			default:
 				return JunctionHelper.NONE_JUNCTION_HEIGHT_INCHES;
 		}
+	}
+
+	public static double getJunctionHeight(int x, int y){
+		Level level = JunctionHelper.getJunctionLevel(x, y);
+
+		return JunctionHelper.getJunctionHeight(level);
+	}
+
+	private static boolean approximatelyEqual(double a, double b){
+		return Math.abs(a - b) < 1.0;
+	}
+
+	public static JunctionHelper.Level rawHeightToJunctionHeight(double height){
+		if( JunctionHelper.approximatelyEqual(height, JunctionHelper.GROUND_JUNCTION_HEIGHT_INCHES) ){
+			return Level.GROUND;
+		} else if( JunctionHelper.approximatelyEqual(height, JunctionHelper.LOW_JUNCTION_HEIGHT_INCHES) ){
+			return Level.LOW;
+		} else if( JunctionHelper.approximatelyEqual(height, JunctionHelper.MEDIUM_JUNCTION_HEIGHT_INCHES) ){
+			return Level.MEDIUM;
+		} else if( JunctionHelper.approximatelyEqual(height, JunctionHelper.HIGH_JUNCTION_HEIGHT_INCHES) ){
+			return Level.HIGH;
+		}
+
+		return Level.NONE;
 	}
 }

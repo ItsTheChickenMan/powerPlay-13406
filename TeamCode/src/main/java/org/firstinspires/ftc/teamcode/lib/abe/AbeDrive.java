@@ -32,8 +32,8 @@ public class AbeDrive {
 		ANGLE
 	}
 
-	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(1.0);
-	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.1);
+	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.8);
+	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.05);
 
 	// rr interface
 	private SampleMecanumDrive drive;
@@ -114,6 +114,14 @@ public class AbeDrive {
 		this.clearCumulativeVelocities();
 	}
 
+	public static Vector2d apacheVectorToRRVector(Vector2D apache){
+		return new Vector2d(apache.getX(), apache.getY());
+	}
+
+	public static Vector2D rrVectorToApacheVector(Vector2d rr){
+		return new Vector2D(rr.getX(), rr.getY());
+	}
+
 	/**
 	 * @param ticks
 	 * @return
@@ -170,6 +178,10 @@ public class AbeDrive {
 	 */
 	public void followTrajectory(Trajectory trajectory) {
 		this.drive.followTrajectory(trajectory);
+	}
+
+	public void followTrajectoryAsync(Trajectory trajectory){
+		this.drive.followTrajectoryAsync(trajectory);
 	}
 
 	/**
@@ -265,9 +277,6 @@ public class AbeDrive {
 
 		this.aimAtPoint = new Vector2d(x, y);
 
-		// pre-calculate aim at angle for proper error
-		this.aimAtAngle = this.calculateAimAngle(this.getPoseEstimate().vec().minus(this.aimAtPoint));
-
 		this.rotationSpeed = rotationSpeed;
 	}
 
@@ -312,10 +321,10 @@ public class AbeDrive {
 	}
 
 	public double calculateAimAngle(Vector2d offset, double distance){
-		double angle = Math.atan2(offset.getY(), offset.getX()) + Math.asin(this.armOffset / distance);
-		angle += Math.PI;
+		// this minus sign here was a plus for a very long time.  it screwed up the aim a lot and was very irritating
+		double angle = Math.atan2(-offset.getY(), offset.getX()) - Math.asin(this.armOffset / distance);
 
-		return angle;
+		return -angle;
 	}
 
 	public double getAimAtAngleRadians(){
@@ -434,10 +443,8 @@ public class AbeDrive {
 		// assign powers
 		this.addToCumulativeVelocities(forward + strafe, forward - strafe, forward - strafe, forward + strafe);
 
-		/*this.frontLeftVelocity += inchesToTicks(forward + strafe);
-		this.frontRightVelocity += inchesToTicks(forward - strafe);
-		this.backLeftVelocity += inchesToTicks(forward - strafe);
-		this.backRightVelocity += inchesToTicks(forward + strafe);*/
+		/*
+		;*/
 	}
 
 	/**
@@ -493,11 +500,11 @@ public class AbeDrive {
 			Vector2d coords = pose.vec();
 
 			if(this.aimMode == AimMode.POINT) {
-				Vector2d offset = coords.minus(this.aimAtPoint);
+				Vector2d offset = this.aimAtPoint.minus(coords);
 
 				double distance = offset.norm();
 
-				if (distance != 0.0) {
+				if (distance > 0.01) {
 					// get currently desired angle
 					this.aimAtAngle = this.calculateAimAngle(offset, distance);
 				}
@@ -505,25 +512,32 @@ public class AbeDrive {
 
 			this.pidController.setTarget(this.aimAtAngle);
 
+			//GlobalStorage.globalTelemetry.addData("heading target (degrees)", Math.toDegrees(this.aimAtAngle));
+
 			// calculate rotation power
-			double rotation = this.pidController.getOutput(this.getPoseEstimate().getHeading());
+			double rotation = this.pidController.getOutput(pose.getHeading());
 
 			rotation *= this.rotationSpeed;
-
-			// make sure it's a number
-			if (!Double.isNaN(rotation)) {
-				// add rotation to cumulative powers
-				this.addToCumulativeVelocities(rotation, -rotation, rotation, -rotation);
-			}
 
 			// determine if we're steady
 			double error = this.pidController.getError();
 			double derivative = this.pidController.getDerivative();
-
+/*
+			GlobalStorage.globalTelemetry.addData("heading (degrees)", Math.toDegrees(pose.getHeading()));
 			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
 			GlobalStorage.globalTelemetry.addData("error (radians)", error);
-
+			GlobalStorage.globalTelemetry.addData("derivative (degrees)", Math.toDegrees(derivative));
+			GlobalStorage.globalTelemetry.addData("derivative (radians)", derivative);
+			GlobalStorage.globalTelemetry.addData("pose", pose.toString());
+*/
 			this.steady = Math.abs(error) < AbeDrive.STEADY_STATE_ERROR_TOLERANCE && Math.abs(derivative) < AbeDrive.STEADY_STATE_DERIVATIVE_TOLERANCE;
+
+			// make sure it's a number
+			// also if we're within steady state tolerances then don't do anything
+			if (!Double.isNaN(rotation) && !this.steady) {
+				// add rotation to cumulative powers
+				this.addToCumulativeVelocities(rotation, -rotation, rotation, -rotation);
+			}
 		} else {
 			this.steady = true;
 		}
@@ -532,5 +546,9 @@ public class AbeDrive {
 
 		// flush powers to motors
 		this.flushCumulativeVelocities();
+	}
+
+	public void updateRROnly(){
+		this.drive.update();
 	}
 }

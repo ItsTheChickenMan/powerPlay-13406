@@ -32,7 +32,7 @@ public class InitializeAbe extends AbeOpMode {
 			// update global storage elbow angle
 			double a = this.abe.arm.getElbowAngleRadians();
 
-			if(a > 0.01){
+			if(a > 0.1){
 				GlobalStorage.currentElbowAngleRadians = a;
 			}
 
