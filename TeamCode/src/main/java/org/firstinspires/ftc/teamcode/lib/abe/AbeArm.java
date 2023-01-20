@@ -141,7 +141,7 @@ public class AbeArm {
 		double desiredAngle = this.calculateAimElbowAngleNoSagRadians(x, y, slidesLength);
 
 		// account for torque
-		double sagCounter = this.calculateSagCounter(desiredAngle, slidesLength);
+		double sagCounter = this.calculateSagCounter(x, y, false);
 
 		return desiredAngle + sagCounter;
 	}
@@ -164,21 +164,21 @@ public class AbeArm {
 		return this.calculateAimElbowAngleNoSagRadians(x, y, slidesLength);
 	}
 
-	public double calculateSagCounter(double elbowAngle, double slidesLength){
-		double torque =
-						Math.cos(elbowAngle)*(slidesLength*AbeConstants.ARM_MASS_LEFT_KG - AbeConstants.ARM_OFFSET_RIGHT_INCHES*AbeConstants.ARM_MASS_RIGHT_KG)*0.5
-										-	Math.sin(elbowAngle)*AbeConstants.TRUE_ELBOW_RADIUS_INCHES*(AbeConstants.ARM_MASS_LEFT_KG+AbeConstants.ARM_MASS_RIGHT_KG - 0.5*AbeConstants.ELBOW_MASS_KG)
-										+	AbeConstants.TORQUE_INTERCEPT;
+	public double calculateSagCounter(double elbowAngle, double slidesLength, boolean usePhysicallyBased){
+		if(usePhysicallyBased) {
+			double torque =
+							Math.cos(elbowAngle) * (slidesLength * AbeConstants.ARM_MASS_LEFT_KG - AbeConstants.ARM_OFFSET_RIGHT_INCHES * AbeConstants.ARM_MASS_RIGHT_KG) * 0.5
+											- Math.sin(elbowAngle) * AbeConstants.TRUE_ELBOW_RADIUS_INCHES * (AbeConstants.ARM_MASS_LEFT_KG + AbeConstants.ARM_MASS_RIGHT_KG - 0.5 * AbeConstants.ELBOW_MASS_KG)
+											+ AbeConstants.TORQUE_INTERCEPT;
 
-		double sagCounter = AbeConstants.ANGULAR_CORRECTION_PER_KG_IN * torque;
+			double sagCounter = AbeConstants.ANGULAR_CORRECTION_PER_KG_IN * torque;
 
-		return sagCounter;
-	}
+			return sagCounter;
+		} else {
+			double sagCounter = AbeConstants.getPrecalculatedElbowSag(elbowAngle, slidesLength);
 
-	public double calculateSagCounter(double distance, JunctionHelper.Level level){
-		double correction = AbeConstants.getPrecalculatedElbowSag(distance, level);
-
-		return correction;
+			return sagCounter;
+		}
 	}
 
 	public void aimAt(double x, double y){
@@ -213,12 +213,12 @@ public class AbeArm {
 		//double sagCounter = this.calculateSagCounter(this.aimElbowAngle, this.aimSlidesLength);
 		// FIXME: hacky
 		double h = y + AbeConstants.ARM_VERTICAL_OFFSET_INCHES - AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
-		JunctionHelper.Level level = JunctionHelper.rawHeightToJunctionHeight(h);
 
-		double sagCounter = this.calculateSagCounter(x, level);
+		double sagCounter = this.calculateSagCounter(x, h, false);
 
-		GlobalStorage.globalTelemetry.addData("height", h);
+		//GlobalStorage.globalTelemetry.addData("height", h);
 
+		/*
 		if(level == JunctionHelper.Level.GROUND){
 			GlobalStorage.globalTelemetry.addLine("GROUND");
 		} else if(level == JunctionHelper.Level.LOW){
@@ -230,6 +230,7 @@ public class AbeArm {
 		} else {
 			GlobalStorage.globalTelemetry.addLine("NONE");
 		}
+		*/
 
 		GlobalStorage.globalTelemetry.addData("sagCounter", sagCounter);
 

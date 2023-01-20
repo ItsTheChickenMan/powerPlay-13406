@@ -75,30 +75,32 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// aim vector for drive rotation
 		Vector2D aimVector = new Vector2D(-gamepad1.right_stick_y, -gamepad1.right_stick_x);
 
-		/*
 		if(aimVector.getNorm() < 0.25) return;
 
 		aimVector = aimVector.normalize();
 
 		// get rotational power
-		double rotationSpeed = 10.0;
+		double rotationSpeed = 24.0 * speed;
 
 		Vector2D forward = this.abe.drive.getForwardVector();
 
-		double rot = (1.0 - forward.dotProduct(aimVector)) * rotationSpeed;
+		double dot = forward.dotProduct(aimVector);
+
+		double rot = (1.0-dot) * rotationSpeed;
 
 		double forwardVectorRotation = Math.atan2(forward.getY(), forward.getX());
 		double aimVectorRotation = Math.atan2(aimVector.getY(), aimVector.getX());
 
-		GlobalStorage.globalTelemetry.addData("forward vector rotation", Math.toDegrees(forwardVectorRotation));
-		GlobalStorage.globalTelemetry.addData("aim vector rotation", Math.toDegrees(aimVectorRotation));
+		//GlobalStorage.globalTelemetry.addData("forward vector rotation", Math.toDegrees(forwardVectorRotation));
+		//GlobalStorage.globalTelemetry.addData("aim vector rotation", Math.toDegrees(aimVectorRotation));
 
 		// get direction
-		double direction = AngleHelper.angularDistanceRadians(forwardVectorRotation, aimVectorRotation);
+		double direction = AngleHelper.angularDistanceRadians(aimVectorRotation, forwardVectorRotation);
 		direction = Math.signum(direction);
 
-		this.abe.drive.rotate(rot * direction);*/
+		this.abe.drive.rotate(rot * direction);
 
+		/*
 		double heading = AbeDrive.apacheVectorToRRVector(aimVector).angle();
 
 		// aim at where the stick is pointing, otherwise maintain current heading
@@ -116,11 +118,12 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 			this.abe.drive.aimAtAngleRadians(this.lockPoint, speed);
 		}
+		*/
 	}
 
 	public void checkJunctionAim(){
 		// get aim vector
-		double distance = 14.0;
+		double distance = 16.0;
 
 		Vector2D desiredAimVector = new Vector2D(-gamepad2.left_stick_y, -gamepad2.left_stick_x);
 
@@ -283,7 +286,8 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				boolean down = gamepad2.right_trigger > 0.05;
 
 				if(down){
-					this.abe.arm.aimAt(22, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
+					// 21 7/8, as negotiated by Saeid and Phoenix
+					this.abe.arm.aimAt(21.875, 3 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 
 					if(gamepad2.dpad_down){
 						this.abe.arm.addToElbowOffsetDegrees(2 * delta);

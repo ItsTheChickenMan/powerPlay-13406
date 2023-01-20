@@ -86,7 +86,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(59.5, 1.5);
 	public static final Vector2D CONE_STACK_LEFT_POSITION = new Vector2D(AbeAutonomous.CONE_STACK_RIGHT_POSITION.getX(), AbeConstants.FIELD_SIZE_INCHES - CONE_STACK_RIGHT_POSITION.getY());
 
-	public static final Vector2D[] PARKING_SPOTS_LEFT = {new Vector2D(59.5, 59.5), new Vector2D(59.5, 40), new Vector2D(59.5, 8)};
+	public static final Vector2D[] PARKING_SPOTS_LEFT = {new Vector2D(62, JunctionHelper.FIELD_WIDTH - 62), new Vector2D(62, JunctionHelper.FIELD_WIDTH - 40), new Vector2D(62,  JunctionHelper.FIELD_WIDTH - 7)};
 	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(62, 62), new Vector2D(62, 40), new Vector2D(62, 7)};
 
 	protected static final double BASE_CONE_STACK_HEIGHT = 3.0;

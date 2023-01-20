@@ -83,7 +83,7 @@ public class ArmStressTest extends AbeOpMode {
 				telemetry.addData("angle", this.abe.arm.getElbowAngleDegrees());
 				telemetry.addData("slides", this.abe.arm.getSlidesExtension());
 				telemetry.addData("og elbow angle", Math.toDegrees(this.abe.arm.calculateAimElbowAngleNoSagRadians(armX, armY)));
-				telemetry.addData("sag correction", Math.toDegrees(this.abe.arm.calculateSagCounter(this.abe.arm.calculateAimElbowAngleNoSagRadians(armX, armY), this.abe.arm.calculateAimSlidesLength(armX, armY))));
+				telemetry.addData("sag correction", Math.toDegrees(this.abe.arm.calculateSagCounter(this.abe.arm.calculateAimElbowAngleNoSagRadians(armX, armY), this.abe.arm.calculateAimSlidesLength(armX, armY), true)));
 				telemetry.update();
 			}
 		}

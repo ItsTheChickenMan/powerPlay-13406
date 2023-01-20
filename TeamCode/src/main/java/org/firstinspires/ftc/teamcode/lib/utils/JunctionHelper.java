@@ -3,12 +3,17 @@ package org.firstinspires.ftc.teamcode.lib.utils;
 public class JunctionHelper {
 	public static final double FIELD_OFFSET = -0.5;
 	public static final double FIELD_SCALE = 23.75;
+	public static final double FIELD_WIDTH = 142;
+	public static final double FIELD_LENGTH = 142;
 
 	public static final double NONE_JUNCTION_HEIGHT_INCHES = -1.0;
 	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 0.56;
 	public static final double LOW_JUNCTION_HEIGHT_INCHES = 13.5;
 	public static final double MEDIUM_JUNCTION_HEIGHT_INCHES = 23.5;
 	public static final double HIGH_JUNCTION_HEIGHT_INCHES = 33.5;
+
+	public static final Level[] JUNCTION_LEVELS = {Level.GROUND, Level.LOW, Level.MEDIUM, Level.HIGH};
+	public static final double[] JUNCTION_HEIGHTS = {JunctionHelper.GROUND_JUNCTION_HEIGHT_INCHES, JunctionHelper.LOW_JUNCTION_HEIGHT_INCHES, JunctionHelper.MEDIUM_JUNCTION_HEIGHT_INCHES, JunctionHelper.HIGH_JUNCTION_HEIGHT_INCHES};
 
 	public static enum Level {
 		NONE,

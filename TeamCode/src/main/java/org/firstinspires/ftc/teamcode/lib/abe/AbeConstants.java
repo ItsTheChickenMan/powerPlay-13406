@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**
@@ -78,11 +79,7 @@ public class AbeConstants {
 	public static final double ARM_OFFSET_RIGHT_INCHES = 2.75;
 	public static final double TRUE_ELBOW_RADIUS_INCHES = 1.75;
 
-	// 0 = ground
-	// 1 = low
-	// 2 = mid
-	// 3 = high
-	public static double getPrecalculatedElbowSag(double distance, JunctionHelper.Level height){
+	public static double getPrecalculatedElbowSagAtLevel(double distance, JunctionHelper.Level level){
 		// 0, 16 = 0.063944
 		// 0, 22 = 0.080398
 		// 0, 28 = 0.098994
@@ -125,26 +122,102 @@ public class AbeConstants {
 		// 3, 28 = 0.1459976
 		// 3, 34 = 0.1607509
 
+		// --------------------
+
+		// 0, 16 = 0.01175755
+		// 0, 22 = 0.08010008
+		// 0, 28 = 0.09315544
+		// 0, 34 = 0.11543916
+
+		// 1, 16 = 0.08679404
+		// 1, 22 = 0.09887151
+		// 1, 28 = 0.11701653
+		// 1, 34 = 0.13414592
+
+		// 2, 16 = 0.10969759
+		// 2, 22 = 0.11280045
+		// 2, 28 = 0.13429005
+		// 2, 34 = 0.14516762
+
+		// 3, 16 = 0.15189753
+		// 3, 22 = 0.14560676
+		// 3, 28 = 0.15419674
+		// 3, 34 = 0.17711154
+
 		double correction = 0.0;
 
 		// pre-calculated using measured values (using ArmTuner) and quadratic regression
-		if(height == JunctionHelper.Level.LOW){
+		if(level == JunctionHelper.Level.LOW){
 			//correction = 0.00007847916667*distance*distance - 0.0014572083*distance + 0.1067614167;
-			correction = 0.00004*distance*distance + 0.07;
-		} else if(height == JunctionHelper.Level.MEDIUM){
+			//correction = 0.00004*distance*distance + 0.07;
+			correction = 0.00003508277778*distance*distance + 0.0009158721111*distance + 0.0628047361;
+		} else if(level == JunctionHelper.Level.MEDIUM){
 			//correction = 0.0001131388889*distance*distance - 0.0034792778*distance + 0.1628323889;
-			correction = 0.000055*distance*distance - 0.0006*distance + 0.095;
-		} else if(height == JunctionHelper.Level.HIGH) {
+			//correction = 0.000055*distance*distance - 0.0006*distance + 0.095;
+			correction = 0.00005399104167*distance*distance - 0.0005678905833*distance + 0.1035121942;
+		} else if(level == JunctionHelper.Level.HIGH) {
 			//correction = 0.0001939722222*distance*distance - 0.0091023111*distance + 0.2872113889;
-			correction = 0.00011*distance*distance - 0.00617*distance + 0.24;
-		} else if(height == JunctionHelper.Level.GROUND) {
+			//correction = 0.00011*distance*distance - 0.00617*distance + 0.24;
+			correction = 0.0002028164583*distance*distance - 0.0087369561*distance + 0.2397400175;
+		} else if(level == JunctionHelper.Level.GROUND) {
 			//correction = 0.0000510625*distance*distance + 0.00069965833*distance + 0.0398309167;
-			correction = 0.00008*distance*distance + 0.0005*distance;
+			//correction = 0.00008*distance*distance + 0.0005*distance;
+			correction = 0.00008460861111*distance*distance - 0.0017408832*distance + 0.0765079811;
 		}
 
 		correction = Math.min(correction, Math.toRadians(13.5));
 
 		return correction;
+	}
+
+	// 0 = ground
+	// 1 = low
+	// 2 = mid
+	// 3 = high
+	public static double getPrecalculatedElbowSag(double distance, double height){
+		double correction = 0.0;
+
+		JunctionHelper.Level lowLevel = JunctionHelper.Level.GROUND;
+		JunctionHelper.Level highLevel = JunctionHelper.Level.NONE;
+
+		// get two enveloping heights
+		for(JunctionHelper.Level level : JunctionHelper.JUNCTION_LEVELS){
+			double h = JunctionHelper.getJunctionHeight(level);
+
+			if(height >= h) lowLevel = level;
+			if(height <= h){
+				highLevel = level;
+				break;
+			}
+		}
+
+		if(highLevel == JunctionHelper.Level.NONE){
+			return 0.0;
+		}
+
+		// get low and high correction
+		double lowCorrection = AbeConstants.getPrecalculatedElbowSagAtLevel(distance, lowLevel);
+		double highCorrection = AbeConstants.getPrecalculatedElbowSagAtLevel(distance, highLevel);
+
+		//GlobalStorage.globalTelemetry.addData("lowCorrection", lowCorrection);
+		//GlobalStorage.globalTelemetry.addData("highCorrection", highCorrection);
+
+		// skip calculations if they're the same
+		if(lowLevel == highLevel){
+			return lowCorrection;
+		}
+
+		// get height differences between correction junctions
+		double lowHeight = JunctionHelper.getJunctionHeight(lowLevel);
+		double highHeight = JunctionHelper.getJunctionHeight(highLevel);
+
+		// map aim height to percentage
+		double percentage = (height - lowHeight) / (highHeight - lowHeight);
+
+		//GlobalStorage.globalTelemetry.addData("percentage", percentage);
+
+		// calculate
+		return percentage*(highCorrection - lowCorrection) + lowCorrection;
 	}
 
 	/*

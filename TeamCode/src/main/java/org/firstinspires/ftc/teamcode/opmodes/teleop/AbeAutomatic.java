@@ -28,9 +28,6 @@ public class AbeAutomatic extends AbeTeleOp {
 		while(opModeIsActive()) {
 			update();
 
-			telemetry.addData("tickOffset", this.abe.arm.elbow.tickOffset);
-			telemetry.addData("tickOffsetDegrees", (this.abe.arm.elbow.tickOffset / AbeConstants.ELBOW_TICK_RATIO / AbeConstants.ELBOW_GEAR_RATIO) * 360.0);
-
 			telemetry.update();
 		}
 	}
