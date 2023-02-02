@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.drive.opmode;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,17 +26,20 @@ public class LocalizationTest extends LinearOpMode {
         waitForStart();
 
         while (!isStopRequested()) {
+            Pose2d poseEstimate = drive.getPoseEstimate();
+
+            Vector2d driveVector = new Vector2d(-gamepad1.left_stick_y*0.5, -gamepad1.left_stick_x*0.5).rotated(-poseEstimate.getHeading());
+
             drive.setWeightedDrivePower(
                     new Pose2d(
-                            -gamepad1.left_stick_y*0.5,
-                            -gamepad1.left_stick_x*0.5,
+                            driveVector.getX(),
+                            driveVector.getY(),
                             -gamepad1.right_stick_x*0.5
                     )
             );
 
             drive.update();
 
-            Pose2d poseEstimate = drive.getPoseEstimate();
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
             telemetry.addData("heading", poseEstimate.getHeading());

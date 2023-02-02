@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.drive;
 
 import androidx.annotation.NonNull;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.localization.TwoTrackingWheelLocalizer;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -33,19 +34,22 @@ import java.util.List;
  *    \--------------/
  *
  */
+@Config
 public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
-	public static double X_MULTIPLIER = 70.825 / 71.44323; // actual / measured
-	public static double Y_MULTIPLIER = 70.9375 / 72.06517;
+	//public static double X_MULTIPLIER = 1.0;
+	public static double X_MULTIPLIER = 71.0 / 71.493;
+	//public static double Y_MULTIPLIER = 1.0;
+	public static double Y_MULTIPLIER = 71.0 / 71.339;
 
 	public static double TICKS_PER_REV = 360 * 4;
 	public static double WHEEL_RADIUS = 1.96 / 2.0; // in
 	public static double GEAR_RATIO = 1; // output (wheel) speed / input (encoder) speed
 
-	public static double PARALLEL_X = 0.75; // X is the up and down direction
-	public static double PARALLEL_Y = -3.75; // Y is the strafe direction
+	public static double PARALLEL_X = -0.75; // X is the up and down direction
+	public static double PARALLEL_Y = -3.90; // Y is the strafe direction
 
-	public static double PERPENDICULAR_X = 1.625;
-	public static double PERPENDICULAR_Y = -1.375;
+	public static double PERPENDICULAR_X = 1.5;
+	public static double PERPENDICULAR_Y = -1.875;
 
 	// Parallel/Perpendicular to the forward axis
 	// Parallel wheel is parallel to the forward axis
@@ -66,7 +70,7 @@ public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
 		perpendicularEncoder = new Encoder(hardwareMap.get(DcMotorEx.class, "perpendicularEncoder"));
 
 		// reverse encoders
-		parallelEncoder.setDirection(Encoder.Direction.REVERSE);
+		//parallelEncoder.setDirection(Encoder.Direction.REVERSE);
 		perpendicularEncoder.setDirection(Encoder.Direction.REVERSE);
 	}
 
@@ -101,8 +105,8 @@ public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
 		//  compensation method
 
 		return Arrays.asList(
-						encoderTicksToInches(parallelEncoder.getCorrectedVelocity()) * X_MULTIPLIER,
-						encoderTicksToInches(perpendicularEncoder.getCorrectedVelocity()) * Y_MULTIPLIER
+						encoderTicksToInches(parallelEncoder.getRawVelocity()) * X_MULTIPLIER,
+						encoderTicksToInches(perpendicularEncoder.getRawVelocity()) * Y_MULTIPLIER
 		);
 	}
 }

@@ -24,7 +24,7 @@ public class AbeConstants {
 	public static final double DRIVE_AIM_P_CONSTANT = 95;
 	public static final double DRIVE_AIM_I_CONSTANT = 0;
 	public static final double DRIVE_AIM_D_CONSTANT = 0;
-	public static final double DRIVE_EXTRA_KICK = 8.0;
+	//public static final double DRIVE_EXTRA_KICK = 8.0;
 
 	/*
 	public static final double DRIVE_AIM_RATE_OF_INCREASE = 2;
@@ -32,12 +32,11 @@ public class AbeConstants {
 	*/
 
 	// generally arm related... //
-	public static final double ARM_LATERAL_OFFSET_INCHES = 2.4375;
+	//public static final double ARM_LATERAL_OFFSET_INCHES = 2.4375;
+	public static final double ARM_LATERAL_OFFSET_INCHES = 2.1;
 	public static final double ARM_LONGINAL_OFFSET_INCHES = -5.0;
 	public static final double ARM_VERTICAL_OFFSET_INCHES = 4.625;
-	//public static final double ARM_POLE_HEIGHT_OFFSET_INCHES = 8.0; // how many inches to aim above a pole FIXME: make small
-	public static final double ARM_POLE_HEIGHT_OFFSET_INCHES = 4.0; // how many inches to aim above a pole
-
+	public static final double ARM_POLE_HEIGHT_OFFSET_INCHES = 0.0; // how many inches to aim above a pole
 
 	// how far the arm falls per inch at 0 degrees
 	// multiplied by cos(angle) to determine expected angular adjustment required at a given extension
@@ -67,7 +66,6 @@ public class AbeConstants {
 	//	-The others should just be physically measured and kept constant unless a new, more accurate measurement is found.
 
 	// TUNE THESE!
-
 	public static final double ANGULAR_CORRECTION_PER_KG_IN = 0.00192; // units in radians / (kg*in)
 
 	public static final double ARM_MASS_LEFT_KG = 1.56;
@@ -144,21 +142,49 @@ public class AbeConstants {
 		// 3, 28 = 0.15419674
 		// 3, 34 = 0.17711154
 
+		// 3, 09 = 0.09570892
+		// 3, 15 = 0.11806050
+		// 3, 21 = 0.11642312
+		// 3, 27 = 0.14596395
+
+		// -------
+		// 1, 16: 0.059594647
+		// 1, 22: 0.086850566
+		// 1, 28: 0.098710917
+		// 1, 34: 0.111407657
+
+		// 2, 16: 0.061812062
+		// 2, 22: 0.077301832
+		// 2, 28: 0.095631629
+		// 2, 34: 0.111018085
+
+		// 3, 09:-0.02021266
+		// 3, 15: 0.03559414
+		// 3, 21: 0.06710116
+		// 3, 27: 0.08947199
+
 		double correction = 0.0;
 
 		// pre-calculated using measured values (using ArmTuner) and quadratic regression
 		if(level == JunctionHelper.Level.LOW){
 			//correction = 0.00007847916667*distance*distance - 0.0014572083*distance + 0.1067614167;
 			//correction = 0.00004*distance*distance + 0.07;
-			correction = 0.00003508277778*distance*distance + 0.0009158721111*distance + 0.0628047361;
+			//correction = 0.00003508277778*distance*distance + 0.0009158721111*distance + 0.0628047361;
+			correction = -0.00010110540972222*distance*distance + 0.00784359350277*distance - 0.03920826630555;
 		} else if(level == JunctionHelper.Level.MEDIUM){
 			//correction = 0.0001131388889*distance*distance - 0.0034792778*distance + 0.1628323889;
 			//correction = 0.000055*distance*distance - 0.0006*distance + 0.095;
-			correction = 0.00005399104167*distance*distance - 0.0005678905833*distance + 0.1035121942;
+			//correction = 0.00005399104167*distance*distance - 0.0005678905833*distance + 0.1035121942;
+			correction = 0.0027657978*distance + 0.0172959578;
 		} else if(level == JunctionHelper.Level.HIGH) {
 			//correction = 0.0001939722222*distance*distance - 0.0091023111*distance + 0.2872113889;
 			//correction = 0.00011*distance*distance - 0.00617*distance + 0.24;
-			correction = 0.0002028164583*distance*distance - 0.0087369561*distance + 0.2397400175;
+			correction = 0.000011700300925913*distance*distance*distance - 0.00086401048611041*distance*distance + 0.02487755229165*distance - 0.18265530062495;
+			/*if(distance > 27){
+				correction = 0.0002028164583*distance*distance - 0.0087369561*distance + 0.2397400175;
+			} else {
+				correction = 0.00004256726080247*distance*distance*distance - 0.00224870673611*distance*distance  + 0.03892206298611*distance - 0.10347593437501;
+			}*/
 		} else if(level == JunctionHelper.Level.GROUND) {
 			//correction = 0.0000510625*distance*distance + 0.00069965833*distance + 0.0398309167;
 			//correction = 0.00008*distance*distance + 0.0005*distance;
@@ -243,23 +269,20 @@ public class AbeConstants {
 	public static final double SLIDE_SPOOL_CIRCUMFERENCE_INCHES = 4.40944882;
 	public static final double SLIDE_BASE_LENGTH_INCHES = 15.125;
 	public static final double SLIDE_MAX_EXTENSION_INCHES = 38; // leaving off two inches as a just-in-case pillow...
-	public static final double SLIDE_EXTENSION_FACTOR = 1.0875; // this could probably just be factored into the circumference, but I've already implemented this so I'm not worried about it
-
-	/**
-	 * @deprecated not respected, just adjust the base length instead
-	 */
-	public static final double SLIDE_OFFSET_INCHES = -1.5; // how far off the slides are from the rotation point
+	public static final double SLIDE_EXTENSION_FACTOR = 1.00; // this could probably just be factored into the circumference, but I've already implemented this so I'm not worried about it
 
 	// wrist related... //
-	public static final double WRIST_BASE_ANGLE_DEGREES = 20;
+	public static final double WRIST_BASE_ANGLE_DEGREES = 0;
 	public static final double WRIST_MAX_RANGE_DEGREES = 295;
 	public static final double WRIST_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.WRIST_MAX_RANGE_DEGREES);
 	public static final double WRIST_OFFSET_INCHES = 5.85; // how far forward the wrist hole is from the end of the slides
 	//public static final double WRIST_OFFSET_INCHES = 0.0; // how far forward the wrist hole is from the end of the slides
+	public static final double WRIST_HOLDING_ANGLE_DEGREES = -45.0;
+	public static final double WRIST_DEPOSITING_ANGLE_DEGREES = 0.0;
 
 	// fingers related... //
 	public static final double FINGERS_MAX_RANGE_DEGREES = 360; // FIXME: update value
 	public static final double FINGERS_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.FINGERS_MAX_RANGE_DEGREES);
-	public static final double FINGERS_CLOSED_POSITION = -10;
-	public static final double FINGERS_OPEN_POSITION = -135;
+	public static final double FINGERS_CLOSED_POSITION = 10;
+	public static final double FINGERS_OPEN_POSITION = -90;
 }

@@ -7,18 +7,17 @@ import org.firstinspires.ftc.teamcode.lib.motion.AngleAdjuster;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
-import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**
  * @brief The entire arm (angle adjuster, slides, wrist, and fingers) wrapped into one easy-to-use class
  */
 public class AbeArm {
 	// constants //
-	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(1.0);
-	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.2);
+	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.25);
+	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.1);
 
-	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.75;
-	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.5;
+	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.25;
+	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.1;
 
 	// members //
 
@@ -121,6 +120,8 @@ public class AbeArm {
 
 	/**
 	 * @brief get the current height of the arm
+	 *
+	 * @todo tends to overestimate, uses raw elbow angle instead of corrected angle for sag
 	 *
 	 * @return
 	 */
@@ -239,7 +240,7 @@ public class AbeArm {
 
 		// adjust wrist for sag
 		// (if this doesn't happen, it goes too low thinking that the elbow angle is higher than the true elbow angle)
-		this.wristAngle = -sagCounter;
+		this.wristAngle += -sagCounter;
 
 		//this.isAiming = false;
 		this.isAiming = true;
@@ -420,8 +421,8 @@ public class AbeArm {
 	 *
 	 * @param angle angle, in degrees
 	 */
-	public void positionWristDegrees(double angle){
-		this.wristAngle = angle+AbeConstants.WRIST_BASE_ANGLE_DEGREES;
+	public void addToWristAngleDegrees(double angle){
+		this.wristAngle += angle;
 	}
 
 	/**
@@ -429,8 +430,8 @@ public class AbeArm {
 	 *
 	 * @param angle, in radians
 	 */
-	public void positionWristRadians(double angle){
-		this.wristAngle = Math.toDegrees(angle+AbeConstants.WRIST_BASE_ANGLE_DEGREES);
+	public void addToWristAngleRadians(double angle){
+		this.wristAngle += Math.toDegrees(angle);
 	}
 
 	/**
@@ -481,6 +482,8 @@ public class AbeArm {
 		} else {
 			this.wrist.rotateToDegrees(-this.wrist.getMaxRangeDegrees() / 2. + this.elbow.getAngleDegrees() + this.wristAngle);
 		}
+
+		this.wristAngle = AbeConstants.WRIST_BASE_ANGLE_DEGREES;
 	}
 
 	/**
@@ -494,8 +497,9 @@ public class AbeArm {
 		// update slides length/elbow angle+
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// falloff from max speed to min speed based on extension
-			double maxSpeed = Math.toRadians(90);
-			double minSpeed = Math.toRadians(45);
+			// FIXME: probably should be a constant
+			double maxSpeed = Math.toRadians(70);
+			double minSpeed = Math.toRadians(20);
 
 			double minExtension = 24.0;
 			double maxExtension = 36.0;

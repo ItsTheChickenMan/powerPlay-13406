@@ -20,7 +20,7 @@ public class AbeAutomatic extends AbeTeleOp {
 
 		// note: roadrunner coordinates
 		if(!GlobalStorage.didAuto) {
-			setStartPoint(9.875, 33, 0);
+			setStartPoint(10.25, 33, 0);
 		}
 
 		waitForStart();

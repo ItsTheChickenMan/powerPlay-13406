@@ -34,15 +34,13 @@ public class JunctionHelper {
 	}
 
 	/**
-	 *
-	 *
 	 * @param x
 	 * @param y
-	 * @return array of integers, representing the
+	 * @return array of integers w/ coords
 	 */
 	public static int[] rawToSnapped(double x, double y){
-		int cx = (int)Math.round((x- JunctionHelper.FIELD_OFFSET) / JunctionHelper.FIELD_SCALE);
-		int cy = (int)Math.round((y- JunctionHelper.FIELD_OFFSET) / JunctionHelper.FIELD_SCALE);
+		int cx = (int)Math.round((x - JunctionHelper.FIELD_OFFSET) / JunctionHelper.FIELD_SCALE);
+		int cy = (int)Math.round((y - JunctionHelper.FIELD_OFFSET) / JunctionHelper.FIELD_SCALE);
 
 		return new int[]{cx, cy};
 	}

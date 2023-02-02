@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import android.provider.Settings;
+
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -21,6 +24,9 @@ import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
  * AbeBot is the only class that's allowed to rely on AbeConstants
  * @fixme I should follow the above rule more often
  */
+
+// FIXME: this too!
+@Config
 public class AbeBot {
 	public static class Hardware {
 		/**
@@ -234,13 +240,18 @@ public class AbeBot {
 		return this.aimAtPoint != null;
 	}
 
+	// FIXME: don't forget about this!!!
+	public static double SPEED_OVERRIDE = 0.2;
+
 	public void update(){
 		// update drive
-		this.drive.update(!doDriveAim);
+		this.drive.update(!doDriveAim, SPEED_OVERRIDE);
 
 		// update arm
 		if(this.isAiming()) {
 			Pose2d pose = this.drive.getPoseEstimate();
+
+			GlobalStorage.globalTelemetry.addData("pose", pose);
 
 			double offsetX = this.aimAtPoint.getX() - pose.getX();
 			double offsetZ = this.aimAtPoint.getZ() - pose.getY();
@@ -253,10 +264,10 @@ public class AbeBot {
 			double armDistance = Math.sqrt(botDistance2 - AbeConstants.ARM_LATERAL_OFFSET_INCHES * AbeConstants.ARM_LATERAL_OFFSET_INCHES) - AbeConstants.ARM_LONGINAL_OFFSET_INCHES;
 			double armHeight = this.aimAtPoint.getY() - AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
 
+			armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
+
 			GlobalStorage.globalTelemetry.addData("arm height", armHeight);
 			GlobalStorage.globalTelemetry.addData("aim height", this.aimAtPoint.getY());
-
-			armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
 
 			GlobalStorage.globalTelemetry.addData("arm distance", armDistance);
 

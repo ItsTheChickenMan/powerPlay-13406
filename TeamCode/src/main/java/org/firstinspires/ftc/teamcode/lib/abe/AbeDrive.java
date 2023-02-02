@@ -36,7 +36,8 @@ public class AbeDrive {
 	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.05);
 
 	// rr interface
-	private SampleMecanumDrive drive;
+	// FIXME: back to private
+	public SampleMecanumDrive drive;
 
 	// cumulative powers
 	private double frontLeftVelocity;
@@ -191,13 +192,12 @@ public class AbeDrive {
 	public Pose2d getPoseEstimate() {
 		Pose2d offset = new Pose2d(this.positionXOffset, this.positionYOffset);
 
-		return offset.plus(this.drive.getPoseEstimate());
+		return offset.plus(this.drive.getCorrectedPoseEstimate());
 	}
 
 	public Vector2D getPoseEstimateAsVector() {
 		return new Vector2D(this.getPoseEstimate().getX(), this.getPoseEstimate().getY());
 	}
-
 
 	/**
 	 * @brief Get the heading of the robot as a normalized vector
@@ -352,7 +352,7 @@ public class AbeDrive {
 	 */
 	public void aimAtCurrentAngle(double rotationSpeed){
 		// fetch angle from current pose
-		double rotation = this.drive.getPoseEstimate().getHeading();
+		double rotation = this.getPoseEstimate().getHeading();
 
 		this.aimAtAngleRadians(rotation, rotationSpeed);
 	}
@@ -431,7 +431,7 @@ public class AbeDrive {
 		Vec2 driveVec = new Vec2(strafe, forward);
 
 		// get heading
-		Pose2d pose = this.drive.getPoseEstimate();
+		Pose2d pose = this.getPoseEstimate();
 		double heading = pose.getHeading();
 
 		// rotate opposite of heading
@@ -486,6 +486,10 @@ public class AbeDrive {
 	 * @param dontDoAim if true, doesn't do aim despite the current setting
 	 */
 	public void update(boolean dontDoAim){
+		this.update(dontDoAim, 1.0);
+	}
+
+	public void update(boolean dontDoAim, double speedOverride){
 		// update odometry
 		this.drive.update();
 
@@ -531,6 +535,8 @@ public class AbeDrive {
 			GlobalStorage.globalTelemetry.addData("pose", pose.toString());
 */
 			this.steady = Math.abs(error) < AbeDrive.STEADY_STATE_ERROR_TOLERANCE && Math.abs(derivative) < AbeDrive.STEADY_STATE_DERIVATIVE_TOLERANCE;
+
+			rotation *= speedOverride;
 
 			// make sure it's a number
 			// also if we're within steady state tolerances then don't do anything

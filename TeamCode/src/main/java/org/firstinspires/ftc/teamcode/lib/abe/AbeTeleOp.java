@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
+import android.provider.Settings;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -36,6 +36,8 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	// SPECIFICALLY CONTROLLER STATES //
 	private boolean g2ALastPressed = false;
 	private boolean g2BLastPressed = false;
+	private boolean g2DpadUpLastPressed = false;
+	private boolean g2DpadDownLastPressed = false;
 
 	// ENUMS //
 
@@ -170,7 +172,21 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	public void updateControllerStates(){
 		this.g2ALastPressed = gamepad2.a;
 		this.g2BLastPressed = gamepad2.b;
+		this.g2DpadUpLastPressed = gamepad2.dpad_up;
+		this.g2DpadDownLastPressed = gamepad2.dpad_down;
 	}
+
+	// deposit switch state scheduler
+	// for switching from wrist down to drop
+	private double depositStateSchedule = UNSCHEDULED;
+
+	// selected stack height
+	private int selectedStackHeight = 4;
+
+	// whether or not the arm is aiming at the stack in grab mode
+	private boolean doingStack = false;
+
+	private boolean stackHeightChangedLastFrame = false;
 
 	public void update(){
 		// update/fetch delta
@@ -206,7 +222,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 				// check for correction
 				// TODO: add correction rate to constants
-				double correctionRate = 5; // in inches / second
+				double correctionRate = 36 * (1.3 - gamepad2.left_trigger); // in inches / second
 
 				Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
 
@@ -227,12 +243,14 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				if(this.chosenJunction != null) {
 					double distance = Vector2D.distance(this.chosenJunction, this.abe.drive.getPoseEstimateAsVector());
 
+					GlobalStorage.globalTelemetry.addData("chosen junction", this.chosenJunction.getX() + ", " + this.chosenJunction.getY());
+
 					// TODO: programmable constant
 					if(distance > 4.0) {
 						this.aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending || isEventScheduled(this.switchModeSchedule));
 
 						// keep wrist at 0 degrees
-						this.abe.arm.positionWristDegrees(0.0);
+						this.abe.arm.addToWristAngleDegrees(0.0);
 					}
 				} else {
 					// ensure that we're not aiming at anything
@@ -242,23 +260,47 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.arm.aimAt(6, 20);
 
 					// do regular drive rotation
+					// TODO: why is this commented out?  thanks for being a dickhead and not leaving a comment, phoenix
+					// 	-phoenix
 					//this.checkDriveRotation();
 
 					// update wrist angle slightly as a visual indication of lack of chosen junction
-					this.abe.arm.positionWristDegrees(35.0);
+					this.abe.arm.addToWristAngleDegrees(55);
+				}
+
+				// check for selection cancel
+				if(gamepad2.x){
+					this.chosenJunction = null;
+				}
+
+				boolean wristIsDown = false;
+
+				// check for wrist preview (also updates wrist for deposit state)
+				if(gamepad2.right_bumper || isEventScheduled(this.depositStateSchedule)){
+					this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_DEPOSITING_ANGLE_DEGREES);
+					wristIsDown = true;
+				} else {
+					this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_HOLDING_ANGLE_DEGREES);
 				}
 
 				// check for deposit request
-				if(gamepad2.a){
-					// deposit
-					this.abe.arm.unclampFingers();
+				if(gamepad2.a && !isEventScheduled(this.depositStateSchedule)){
+					double time = wristIsDown ? 0.0 : 0.25;
 
 					// schedule mode switch
-					this.switchModeSchedule = getScheduledTime(0.25);
+					this.depositStateSchedule = getScheduledTime(time);
 				}
 
-				if(gamepad2.x){
-					this.chosenJunction = null;
+				// check if deposit state is scheduled to change
+				if( isScheduledEventHappening(this.depositStateSchedule) ){
+					// drop cone
+					this.abe.arm.unclampFingers();
+
+					// unschedule deposit state
+					this.depositStateSchedule = UNSCHEDULED;
+
+					// schedule mode switch
+					this.switchModeSchedule = getScheduledTime(0.1);
 				}
 
 				// check if mode switch has been requested
@@ -285,22 +327,63 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 				boolean down = gamepad2.right_trigger > 0.05;
 
-				if(down){
-					// 21 7/8, as negotiated by Saeid and Phoenix
-					this.abe.arm.aimAt(21.875, 3 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
+				double height;
 
-					if(gamepad2.dpad_down){
-						this.abe.arm.addToElbowOffsetDegrees(2 * delta);
-					} else if (gamepad2.dpad_up){
-						this.abe.arm.addToElbowOffsetDegrees(-2 * delta);
+				if(down){
+					// doing stack aim?
+					if(this.doingStack) {
+						// snap stack height
+						this.selectedStackHeight = Math.max(Math.min(this.selectedStackHeight, 4), 0);
+
+						// get height
+						height = this.getConeStackHeight(this.selectedStackHeight);
+
+						// check for stack change
+						if(gamepad2.dpad_up && !this.stackHeightChangedLastFrame){
+							this.selectedStackHeight++;
+						}
+
+						if (gamepad2.dpad_down && !this.stackHeightChangedLastFrame){
+							this.selectedStackHeight--;
+						}
+
+						if(gamepad2.dpad_down || gamepad2.dpad_up){
+							this.stackHeightChangedLastFrame = true;
+						} else {
+							this.stackHeightChangedLastFrame = false;
+						}
 					}
+					// otherwise go to normal height
+					else {
+						height = 3.25;
+					}
+
+					// check if stack aim is pressed
+					if(gamepad2.dpad_up && !this.doingStack){
+						// enable stack aim height
+						this.doingStack = true;
+					}
+
+					height -= AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
+
+					// 21 7/8, as negotiated by Saeid and Phoenix
+					this.abe.arm.aimAt(21.875, height);
+
+					GlobalStorage.globalTelemetry.addData("height", height);
 				} else {
+					this.doingStack = false;
+
 					this.abe.arm.aimAt(6, 20);
 				}
 
 				// check for grab
-				if(gamepad2.a){
+				if(gamepad2.a && !isEventScheduled(this.switchModeSchedule)){
 					this.abe.arm.clampFingers();
+
+					// decrease stack size for grab
+					if(this.doingStack){
+						this.selectedStackHeight--;
+					}
 
 					// schedule mode switch in half a second
 					this.switchModeSchedule = getScheduledTime(0.4);

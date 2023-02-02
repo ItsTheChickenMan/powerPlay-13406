@@ -38,6 +38,11 @@ public class ArmTuner extends AbeOpMode {
 			lastTime = currentTime;
 
 			double armX = armXIndex*6.0 + 16.0;
+
+			if(currentLevel == JunctionHelper.Level.HIGH){
+				armX = armXIndex*6.0 + 9.0;
+			}
+
 			double armY = JunctionHelper.getJunctionHeight(currentLevel) - AbeConstants.ARM_VERTICAL_OFFSET_INCHES + AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
 
 			double trueElbowAngle = this.abe.arm.calculateAimElbowAngleNoSagRadians(armX, armY);

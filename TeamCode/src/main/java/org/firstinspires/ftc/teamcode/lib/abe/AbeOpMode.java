@@ -15,6 +15,16 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
  * More specific methods for autonomous and teleop should be contained in AbeAutonomous and AbeTeleOp, respectively
  */
 public abstract class AbeOpMode extends LinearOpMode {
+	protected static final double BASE_CONE_STACK_HEIGHT = 3.0;
+	protected static final double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
+
+	public double getConeStackHeight(int cone){
+		// calculate height
+		double height = AbeOpMode.BASE_CONE_STACK_HEIGHT + AbeOpMode.CONE_STACK_HEIGHT_INCREASE_RATE*cone;
+
+		return height;
+	}
+
 	// abe bot
 	protected AbeBot abe;
 
@@ -101,30 +111,23 @@ public abstract class AbeOpMode extends LinearOpMode {
 		if(!JunctionHelper.isValidHeight(height)) return;
 
 		// add the height offset
-		height += AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
+		if(height == JunctionHelper.GROUND_JUNCTION_HEIGHT_INCHES) {
+			// special offset for ground
+			// FIXME: constant?
+			height += 4.0;
+		}	else if(height == JunctionHelper.LOW_JUNCTION_HEIGHT_INCHES) {
+			height += 3.0;
+		} else {
+			height += AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
+		}
 
 		// get real x and y
 		double[] coords = JunctionHelper.snappedToRaw(JunctionHelper.rawToSnapped(x, y)); // TODO: I hate this
 		double rx = coords[0];
 		double ry = coords[1];
 
-		/*if( (height-AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES) >= JunctionHelper.HIGH_JUNCTION_HEIGHT-1) {
-			// TODO: add this to AbeConstants?
-			height -= 0.75;
-
-			// account for forward
-			Vector2D forward = this.abe.drive.getForwardVector();
-
-			// TODO: add this to AbeConstants?
-			double offset = 5.0;
-
-			// multiply by offset
-			forward = forward.scalarMultiply(offset);
-
-			// add to aim coords
-			rx += forward.getX();
-			ry += forward.getY();
-		}*/
+		GlobalStorage.globalTelemetry.addData("rx", rx);
+		GlobalStorage.globalTelemetry.addData("ry", ry);
 
 		// aim
 		this.abe.aimAt(rx, height, ry, doDrive, doElbow, doSlides);

@@ -78,7 +78,7 @@ public class AbeManual extends LinearOpMode {
 		waitForStart();
 
 		// permanent wrist adjustment
-		this.abe.arm.positionWristDegrees(0);
+		this.abe.arm.addToWristAngleDegrees(0);
 
 		// fingers logic
 		boolean lastClamped = false;

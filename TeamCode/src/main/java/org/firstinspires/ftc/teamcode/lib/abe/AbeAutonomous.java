@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -17,6 +18,7 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
  *
  * Inherit from this class instead of Autonomous to use the methods
  */
+@Config
 public abstract class AbeAutonomous extends AbeOpMode {
 	// constants //
 	public enum Mode {
@@ -29,6 +31,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		LIFTING,
 		AIMING,
 		EXTENDING,
+		WRISTING,
 		DEPOSITING,
 		REORIENTING;
 
@@ -48,6 +51,9 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					incremented = EXTENDING;
 					break;
 				case EXTENDING:
+					incremented = WRISTING;
+					break;
+				case WRISTING:
 					incremented = DEPOSITING;
 					break;
 				case DEPOSITING:
@@ -74,8 +80,11 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				case DEPOSITING:
 					decremented = EXTENDING;
 					break;
-				case REORIENTING:
+				case WRISTING:
 					decremented = DEPOSITING;
+					break;
+				case REORIENTING:
+					decremented = WRISTING;
 					break;
 			}
 
@@ -83,14 +92,12 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		}
 	}
 
-	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(59.5, 1.5);
+	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 1.5);
 	public static final Vector2D CONE_STACK_LEFT_POSITION = new Vector2D(AbeAutonomous.CONE_STACK_RIGHT_POSITION.getX(), AbeConstants.FIELD_SIZE_INCHES - CONE_STACK_RIGHT_POSITION.getY());
 
-	public static final Vector2D[] PARKING_SPOTS_LEFT = {new Vector2D(62, JunctionHelper.FIELD_WIDTH - 62), new Vector2D(62, JunctionHelper.FIELD_WIDTH - 40), new Vector2D(62,  JunctionHelper.FIELD_WIDTH - 7)};
-	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(62, 62), new Vector2D(62, 40), new Vector2D(62, 7)};
+	public static final Vector2D[] PARKING_SPOTS_LEFT = {new Vector2D(56, JunctionHelper.FIELD_WIDTH - 62), new Vector2D(60, JunctionHelper.FIELD_WIDTH - 40), new Vector2D(60,  JunctionHelper.FIELD_WIDTH - 7)};
+	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(56, 60), new Vector2D(56, 36), new Vector2D(56, 11.5)};
 
-	protected static final double BASE_CONE_STACK_HEIGHT = 3.0;
-	protected static final double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
 	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
 
 	protected static final double GRAB_ANGLE_ERROR_DEGREES = 10.0;
@@ -116,6 +123,11 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	private CycleState cycleState = CycleState.GRABBING;
 	private double switchCycleSchedule = UNSCHEDULED;
 	private int updatesSinceCycleSwitch = 0;
+
+	// the saeid method
+	public static double CORRECTION_RATE = 0.25; // inches of correction in the y direction per deposit. this does affect the overall odometry
+
+	private double currentCorrection = 0.0;
 
 	// methods //
 	public CycleState getCycleState(){
@@ -163,7 +175,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					this.aimAtConeStack();
 				}
 
-				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule)){
+				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule) && gamepad2.a){
 					// clamp
 					this.abe.arm.clampFingers();
 
@@ -222,6 +234,18 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					this.switchCycleSchedule = getScheduledTime(0.0);
 				}
 
+				this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_HOLDING_ANGLE_DEGREES);
+
+				break;
+			}
+
+			case WRISTING: {
+				if(!isEventScheduled(this.switchCycleSchedule)){
+					this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_DEPOSITING_ANGLE_DEGREES);
+
+					if(gamepad2.a) this.switchCycleSchedule = getScheduledTime(0.25);
+				}
+
 				break;
 			}
 
@@ -230,7 +254,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					this.abe.arm.unclampFingers();
 
 					// schedule switch after short time
-					this.switchCycleSchedule = getScheduledTime(0.25);
+					this.switchCycleSchedule = getScheduledTime(0.1);
 
 					// decrease cone stack size by 1
 					// logically this should happen after the LIFTING state, but then some logic gets buggy so this is fine
@@ -244,6 +268,13 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				// aim at stack with drive and elbow, but wait for slides
 				if(this.updatesSinceCycleSwitch == 1){
 					this.aimAtConeStack(true, true, false);
+
+					// update saeid method correction
+					this.abe.drive.addToPositionYOffset(this.currentCorrection);
+
+					double direction = this.mode == Mode.RIGHT ? -1 : 1;
+
+					this.currentCorrection += CORRECTION_RATE * direction;
 				}
 
 				// switch when all is steady
@@ -283,10 +314,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	}
 
 	public double getTopConeStackHeight(){
-		// calculate height
-		double height = AbeAutonomous.BASE_CONE_STACK_HEIGHT + AbeAutonomous.CONE_STACK_HEIGHT_INCREASE_RATE*this.coneStackCount;
-
-		return height;
+		return getConeStackHeight(this.coneStackCount);
 	}
 
 	public void aimAtConeStack(){

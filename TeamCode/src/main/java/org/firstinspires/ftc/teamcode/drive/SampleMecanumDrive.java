@@ -58,6 +58,8 @@ public class SampleMecanumDrive extends MecanumDrive {
     public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(4.5, 0, 0);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(8, 0, 0);
 
+    //public static double LATERAL_MULTIPLIER = 68.45327000659437 / 59.375;
+    //public static double LATERAL_MULTIPLIER = 71 / 68.782;
     public static double LATERAL_MULTIPLIER = 1;
 
     public static double VX_WEIGHT = 1;
@@ -113,7 +115,7 @@ public class SampleMecanumDrive extends MecanumDrive {
         //        /
         //       / +X axis
         //
-        // This diagram is derived from the axes in section 3.4 https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bno055-ds000.pdf
+        // This diagram is derived from the axes in section 3.4 https ://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bno055-ds000.pdf
         // and the placement of the dot/orientation from https://docs.revrobotics.com/rev-control-system/control-system-overview/dimensions#imu-location
         //
         // For example, if +Y in this diagram faces downwards, you would use AxisDirection.NEG_Y.
@@ -148,9 +150,47 @@ public class SampleMecanumDrive extends MecanumDrive {
 
         // TODO: if desired, use setLocalizer() to change the localization method
         // for instance, setLocalizer(new ThreeTrackingWheelLocalizer(...));
-        //setLocalizer(new TwoWheelTrackingLocalizer(hardwareMap, this));
+        setLocalizer(new TwoWheelTrackingLocalizer(hardwareMap, this));
+        this.usingEncoderWheels = true;
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(follower, HEADING_PID);
+    }
+
+    private boolean usingEncoderWheels;
+
+    private double startX;
+    private double startY;
+
+    public Pose2d getCorrectedPoseEstimate(){
+        return getPoseEstimate();
+
+        /*Pose2d measuredPose = getPoseEstimate();
+
+        if(usingEncoderWheels){
+            return measuredPose;
+        }
+
+        double distanceX = measuredPose.getX() - startX;
+        double distanceY = measuredPose.getY() - startY;
+
+        distanceX *= X_MULTIPLIER;
+        distanceY *= Y_MULTIPLIER;
+
+        Pose2d correctedPose = new Pose2d(startX + distanceX, startY + distanceY, measuredPose.getHeading());
+
+        return correctedPose;*/
+    }
+
+    /**
+     * @brief Will probably break if called repeatedly, try to only call this once at the start of the program
+     *
+     * @param pose
+     */
+    public void setStartPose(Pose2d pose){
+        this.startX = pose.getX();
+        this.startY = pose.getY();
+
+        setPoseEstimate(pose);
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
@@ -210,6 +250,11 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public Pose2d getLastError() {
         return trajectorySequenceRunner.getLastPoseError();
+    }
+
+    public void updateNoOdo(){
+        DriveSignal signal = trajectorySequenceRunner.update(getPoseEstimate(), getPoseVelocity());
+        if (signal != null) setDriveSignal(signal);
     }
 
     public void update() {

@@ -49,7 +49,7 @@ public class RightSideParkAuto extends AbeAutonomous {
 		this.loadStateFromGlobalStorage();
 
 		// set start point
-		setStartPoint(9.875, 33, 0);
+		setStartPoint(10.25, 33, 0);
 
 		// open fingers
 		this.abe.arm.unclampFingers();

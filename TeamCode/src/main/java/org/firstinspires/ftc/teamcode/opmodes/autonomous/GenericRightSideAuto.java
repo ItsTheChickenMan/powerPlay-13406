@@ -1,27 +1,33 @@
 package org.firstinspires.ftc.teamcode.opmodes.autonomous;
 
-import android.provider.Settings;
-
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeAutonomous;
-import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
-@Autonomous
-public class RightSideAuto extends AbeAutonomous {
+public class GenericRightSideAuto extends AbeAutonomous {
+	// note: not including preload
+	protected int[] depositAttempts = new int[]{2, 3, 2};
+	protected Vector2D depositJunction = new Vector2D(72, 48);
+
+	public void settings(){
+		this.depositAttempts = new int[]{2, 3, 2};
+		this.depositJunction = new Vector2D(72, 48);
+	}
+
 	@Override
 	public void runOpMode() throws InterruptedException {
 		GlobalStorage.globalTelemetry = telemetry;
 		GlobalStorage.didAuto = true;
+
+		this.settings();
 
 		OpenCvCamera camera = AbeAutonomous.createCamera(hardwareMap);
 
@@ -41,20 +47,18 @@ public class RightSideAuto extends AbeAutonomous {
 		});
 
 		// setup auto
-		Vector2D depositJunction = new Vector2D(72, 48);
-
 		setup(camera, Mode.RIGHT, depositJunction);
 
 		// load current state from global storage
 		this.loadStateFromGlobalStorage();
 
 		// set start point
-		setStartPoint(9.875, 33, 0);
+		setStartPoint(10.25, 33, 0);
 
 		// open fingers
 		this.abe.arm.unclampFingers();
 
-		Vector2d depositPosition = new Vector2d(57, 33);
+		Vector2d depositPosition = new Vector2d(55, 33);
 
 		Pose2d depositPose = new Pose2d(depositPosition.getX(), depositPosition.getY(),
 						this.abe.drive.calculateAimAngle(
@@ -66,21 +70,22 @@ public class RightSideAuto extends AbeAutonomous {
 		// (maybe in the future have some homebrew pathfinding?)
 		Trajectory openingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
 						// overshoot to move cone
-						.splineToConstantHeading(new Vector2d(depositPosition.getX()+3, depositPosition.getY()), 0)
-						.splineToConstantHeading(depositPosition, 0)
+						.splineToConstantHeading(new Vector2d(depositPosition.getX()+5, depositPosition.getY()), 0)
+						.splineToSplineHeading(depositPose, 0)
 						.build();
 
-		//
-		Trajectory[] parkingTrajectories = new Trajectory[3];
+		// generate park trajectories
+		//Trajectory[] parkingTrajectories = new Trajectory[3];
 
-		for(int i = 0; i < 3; i++){
+		/*for(int i = 0; i < 3; i++){
 			parkingTrajectories[i] = this.abe.drive.trajectoryBuilder(openingTrajectory.end())
-							.splineToConstantHeading(AbeDrive.apacheVectorToRRVector(this.getParkingSpot(i)), 0)
+							.splineToSplineHeading(new Pose2d(this.getParkingSpot(i).getX(), this.getParkingSpot(i).getY(), 0), 0)
 							.build();
-		}
+		}*/
 
 		// calculate initial elbow angle
-		double openingElbowAngle = this.abe.arm.calculateAimElbowAngleRadians(depositJunction.getX(), depositPose.getY());
+		//double openingElbowAngle = this.abe.arm.calculateAimElbowAngleRadians(depositJunction.getX(), depositJunction.getY());
+		double openingElbowAngle = 45;
 
 		// wait for start
 		while(!isStarted() && !isStopRequested()){
@@ -121,7 +126,7 @@ public class RightSideAuto extends AbeAutonomous {
 		}
 
 		// amount of cones we should attempt
-		int coneAttempts = 2;
+		int coneAttempts = this.depositAttempts[aprilTagDetection];
 
 		// subtract one if parking space is too far
 		/*if(aprilTagDetection == 0 || aprilTagDetection == 2){
@@ -140,32 +145,58 @@ public class RightSideAuto extends AbeAutonomous {
 		// (we already have a cone, so skip to aim state to ensure that we're properly aiming to the junction)
 		this.setCycleState(CycleState.AIMING);
 
+		int totalLoops = 0;
+
+		double start = this.timer.seconds();
+
 		// cycle cones in stack
 		while(this.getConesInStack() >= (5-coneAttempts)){
 			cycle();
 
 			update();
+
+			GlobalStorage.globalTelemetry.update();
+
+			totalLoops++;
 		}
 
-		this.abe.arm.enableManualControl();
+		double end = this.timer.seconds();
 
-		// retract slides
-		this.abe.arm.extendSlidesTo(this.abe.arm.getSlidesBaseExtension(), 15.0);
+		double duration = end - start;
+		double averageLoopTime = duration / totalLoops;
 
-		// retract elbow
-		this.abe.arm.setElbowAngleDegrees(25.0, 25.0);
+		while(opModeIsActive()){
+			telemetry.addData("total loops", totalLoops);
+			telemetry.addData("duration", duration);
+			telemetry.addData("avg time (milliseconds)", averageLoopTime*1000);
+			telemetry.update();
+		}
 
-		this.abe.arm.disableManualControl();
+		this.abe.clearPoint();
 
-		Trajectory parkingTrajectory = parkingTrajectories[aprilTagDetection];
+		this.abe.update();
+
+		this.abe.arm.aimAt(6, 20);
+
+		this.abe.update();
+
+		/*while(opModeIsActive()){
+			this.abe.update();
+
+			telemetry.addData("pose", this.abe.drive.getPoseEstimate());
+			telemetry.update();
+		}*/
+		//Trajectory parkingTrajectory = parkingTrajectories[aprilTagDetection];
+		Trajectory parkingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
+						.splineToLinearHeading(new Pose2d(this.getParkingSpot(aprilTagDetection).getX(), this.getParkingSpot(aprilTagDetection).getY(), 0), 0)
+						.build();
 
 		// follow trajectory
 		this.abe.drive.followTrajectory(parkingTrajectory);
 
-		// actively save state
+		// save state
 		this.saveStateToGlobalStorage();
 
-		// save state
 		while(opModeIsActive()){
 			// update robot
 			this.abe.drive.updateRROnly();
