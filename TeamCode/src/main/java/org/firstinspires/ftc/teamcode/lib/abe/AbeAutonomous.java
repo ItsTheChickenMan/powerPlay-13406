@@ -7,6 +7,7 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
+import org.firstinspires.ftc.teamcode.lib.utils.PIDControllerRotation;
 import org.firstinspires.ftc.teamcode.util.Encoder;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
@@ -269,12 +270,12 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				if(this.updatesSinceCycleSwitch == 1){
 					this.aimAtConeStack(true, true, false);
 
-					// update saeid method correction
-					this.abe.drive.addToPositionYOffset(this.currentCorrection);
-
 					double direction = this.mode == Mode.RIGHT ? -1 : 1;
 
 					this.currentCorrection += CORRECTION_RATE * direction;
+
+					// update saeid method correction
+					this.abe.drive.addToPositionYOffset(this.currentCorrection);
 				}
 
 				// switch when all is steady
@@ -302,7 +303,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 
 	public void update(){
 		// update bot
-		this.abe.update();
+		this.abe.update(PIDControllerRotation.CW);
 	}
 
 	public int getConesInStack(){

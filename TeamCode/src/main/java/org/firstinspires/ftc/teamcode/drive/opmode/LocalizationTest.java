@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode.drive.opmode;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
@@ -15,8 +17,11 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
  * exercise is to ascertain whether the localizer has been configured properly (note: the pure
  * encoder localizer heading may be significantly off if the track width has not been tuned).
  */
+@Config
 @TeleOp(group = "drive")
 public class LocalizationTest extends LinearOpMode {
+    public static double SPEED = 1.0;
+
     @Override
     public void runOpMode() throws InterruptedException {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
@@ -25,21 +30,37 @@ public class LocalizationTest extends LinearOpMode {
 
         waitForStart();
 
-        while (!isStopRequested()) {
+        ElapsedTime timer = new ElapsedTime();
+
+        timer.reset();
+
+        int loops = 0;
+        while (!gamepad1.a && !isStopRequested()) {
             Pose2d poseEstimate = drive.getPoseEstimate();
 
-            Vector2d driveVector = new Vector2d(-gamepad1.left_stick_y*0.5, -gamepad1.left_stick_x*0.5).rotated(-poseEstimate.getHeading());
+            Vector2d driveVector = new Vector2d(-gamepad1.left_stick_y, -gamepad1.left_stick_x);
+
+            //driveVector = driveVector.rotated(-poseEstimate.getHeading());
 
             drive.setWeightedDrivePower(
                     new Pose2d(
                             driveVector.getX(),
                             driveVector.getY(),
-                            -gamepad1.right_stick_x*0.5
-                    )
+                            -gamepad1.right_stick_x
+                    ).times(SPEED)
             );
 
             drive.update();
 
+            loops++;
+        }
+
+        double duration = timer.seconds();
+
+        while(!isStopRequested()){
+            Pose2d poseEstimate = drive.getPoseEstimate();
+
+            telemetry.addData("loop time", duration / loops);
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
             telemetry.addData("heading", poseEstimate.getHeading());

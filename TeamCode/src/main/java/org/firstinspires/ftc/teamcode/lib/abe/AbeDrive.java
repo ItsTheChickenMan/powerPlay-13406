@@ -61,7 +61,7 @@ public class AbeDrive {
 	private double aimAtAngle;
 
 	// PID stuff
-	private PIDController pidController;
+	private PIDControllerRotation pidController;
 
 	// delta settings
 	private double lastError = 0;
@@ -490,8 +490,15 @@ public class AbeDrive {
 	}
 
 	public void update(boolean dontDoAim, double speedOverride){
+		this.update(dontDoAim, speedOverride, PIDControllerRotation.FASTEST);
+	}
+
+	public void update(boolean dontDoAim, double speedOverride, int directionOverride){
 		// update odometry
 		this.drive.update();
+
+		// update pid controller
+		this.pidController.setDirection(directionOverride);
 
 		// get delta
 		double time = this.deltaTimer.seconds();

@@ -163,34 +163,6 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public Pose2d getCorrectedPoseEstimate(){
         return getPoseEstimate();
-
-        /*Pose2d measuredPose = getPoseEstimate();
-
-        if(usingEncoderWheels){
-            return measuredPose;
-        }
-
-        double distanceX = measuredPose.getX() - startX;
-        double distanceY = measuredPose.getY() - startY;
-
-        distanceX *= X_MULTIPLIER;
-        distanceY *= Y_MULTIPLIER;
-
-        Pose2d correctedPose = new Pose2d(startX + distanceX, startY + distanceY, measuredPose.getHeading());
-
-        return correctedPose;*/
-    }
-
-    /**
-     * @brief Will probably break if called repeatedly, try to only call this once at the start of the program
-     *
-     * @param pose
-     */
-    public void setStartPose(Pose2d pose){
-        this.startX = pose.getX();
-        this.startY = pose.getY();
-
-        setPoseEstimate(pose);
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {

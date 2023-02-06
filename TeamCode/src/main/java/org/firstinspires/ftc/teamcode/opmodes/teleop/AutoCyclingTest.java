@@ -96,6 +96,8 @@ public class AutoCyclingTest extends AbeAutonomous {
 		double averageLoopTime = duration / totalLoops;
 
 		while (opModeIsActive()) {
+			this.abe.drive.drive.updatePoseEstimate();
+
 			telemetry.addData("total loops", totalLoops);
 			telemetry.addData("duration", duration);
 			telemetry.addData("avg time (milliseconds)", averageLoopTime * 1000);

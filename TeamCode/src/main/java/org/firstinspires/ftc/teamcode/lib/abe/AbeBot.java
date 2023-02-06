@@ -17,6 +17,7 @@ import org.firstinspires.ftc.teamcode.lib.motion.LinearSlidesEx;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.PIDControllerRotation;
 
 /**
  * @brief Class for controlling an ABE bot (aka our power play bot v1)
@@ -241,11 +242,15 @@ public class AbeBot {
 	}
 
 	// FIXME: don't forget about this!!!
-	public static double SPEED_OVERRIDE = 0.2;
+	public static double SPEED_OVERRIDE = 0.7;
 
 	public void update(){
+		this.update(PIDControllerRotation.FASTEST);
+	}
+
+	public void update(int directionOverride){
 		// update drive
-		this.drive.update(!doDriveAim, SPEED_OVERRIDE);
+		this.drive.update(!doDriveAim, SPEED_OVERRIDE, directionOverride);
 
 		// update arm
 		if(this.isAiming()) {
