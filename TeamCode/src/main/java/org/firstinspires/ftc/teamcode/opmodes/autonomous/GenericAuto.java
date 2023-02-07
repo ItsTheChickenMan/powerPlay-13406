@@ -9,17 +9,20 @@ import org.firstinspires.ftc.teamcode.lib.abe.AbeAutonomous;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 
-public class GenericRightSideAuto extends AbeAutonomous {
-	// note: not including preload
-	protected int[] depositAttempts = new int[]{2, 3, 2};
-	protected Vector2D depositJunction = new Vector2D(72, 48);
+public abstract class GenericAuto extends AbeAutonomous {
+	// note: including preload
+	protected int[] depositAttempts = new int[]{3, 3, 3};
+	protected Mode mode = Mode.LEFT;
+	protected Vector2D depositJunction = new Vector2D(72, 94.5);
 
 	public void settings(){
 		this.depositAttempts = new int[]{2, 3, 2};
 		this.depositJunction = new Vector2D(72, 48);
+		this.mode = Mode.LEFT;
 	}
 
 	@Override
@@ -47,18 +50,18 @@ public class GenericRightSideAuto extends AbeAutonomous {
 		});
 
 		// setup auto
-		setup(camera, Mode.RIGHT, depositJunction);
+		setup(camera, Mode.LEFT, depositJunction);
 
 		// load current state from global storage
 		this.loadStateFromGlobalStorage();
 
 		// set start point
-		setStartPoint(10.25, 33, 0);
+		setStartPoint(this.getStartingPosition().getX(), this.getStartingPosition().getY(), 0);
 
 		// open fingers
 		this.abe.arm.unclampFingers();
 
-		Vector2d depositPosition = new Vector2d(55, 33);
+		Vector2d depositPosition = AbeDrive.apacheVectorToRRVector(this.getDepositPosition());
 
 		Pose2d depositPose = new Pose2d(depositPosition.getX(), depositPosition.getY(),
 						this.abe.drive.calculateAimAngle(
@@ -85,7 +88,7 @@ public class GenericRightSideAuto extends AbeAutonomous {
 
 		// calculate initial elbow angle
 		//double openingElbowAngle = this.abe.arm.calculateAimElbowAngleRadians(depositJunction.getX(), depositJunction.getY());
-		double openingElbowAngle = 45;
+		double openingElbowAngle = 50;
 
 		// wait for start
 		while(!isStarted() && !isStopRequested()){
@@ -115,7 +118,6 @@ public class GenericRightSideAuto extends AbeAutonomous {
 		camera.closeCameraDeviceAsync(new OpenCvCamera.AsyncCameraCloseListener() {
 			@Override
 			public void onClose() {
-
 			}
 		});
 
@@ -128,48 +130,43 @@ public class GenericRightSideAuto extends AbeAutonomous {
 		// amount of cones we should attempt
 		int coneAttempts = this.depositAttempts[aprilTagDetection];
 
-		// subtract one if parking space is too far
-		/*if(aprilTagDetection == 0 || aprilTagDetection == 2){
-			coneAttempts--;
-		}*/
+		if(coneAttempts > 0) {
+			// subtract one if parking space is too far
+			/*if(aprilTagDetection == 0 || aprilTagDetection == 2){
+				coneAttempts--;
+			}*/
 
-		// set elbow angle to approximate correct angle (shaves off a bit of time)
-		this.abe.arm.enableManualControl();
-		this.abe.arm.setElbowAngleRadians(openingElbowAngle, Math.toRadians(20));
-		this.abe.arm.disableManualControl();
+			// set elbow angle to approximate correct angle (shaves off a bit of time)
+			this.abe.arm.enableManualControl();
+			this.abe.arm.setElbowAngleRadians(openingElbowAngle, Math.toRadians(20));
+			this.abe.arm.disableManualControl();
 
-		// move to position
-		this.abe.drive.followTrajectory(openingTrajectory);
+			// move to position
+			this.abe.drive.followTrajectory(openingTrajectory);
 
-		// set appropriate cycle state
-		// (we already have a cone, so skip to aim state to ensure that we're properly aiming to the junction)
-		this.setCycleState(CycleState.AIMING);
+			// set appropriate cycle state
+			// (we already have a cone, so skip to aim state to ensure that we're properly aiming to the junction)
+			this.setCycleState(CycleState.AIMING);
 
-		int totalLoops = 0;
+			int totalLoops = 0;
 
-		double start = this.timer.seconds();
+			double start = this.timer.seconds();
 
-		// cycle cones in stack
-		while(this.getConesInStack() >= (5-coneAttempts)){
-			cycle();
+			// cycle cones in stack
+			while (this.getConesInStack() > (5 - coneAttempts)) {
+				cycle();
 
-			update();
+				update();
 
-			GlobalStorage.globalTelemetry.update();
+				GlobalStorage.globalTelemetry.update();
 
-			totalLoops++;
-		}
+				totalLoops++;
+			}
 
-		double end = this.timer.seconds();
+			double end = this.timer.seconds();
 
-		double duration = end - start;
-		double averageLoopTime = duration / totalLoops;
-
-		while(opModeIsActive()){
-			telemetry.addData("total loops", totalLoops);
-			telemetry.addData("duration", duration);
-			telemetry.addData("avg time (milliseconds)", averageLoopTime*1000);
-			telemetry.update();
+			double duration = end - start;
+			double averageLoopTime = duration / totalLoops;
 		}
 
 		this.abe.clearPoint();
@@ -180,12 +177,6 @@ public class GenericRightSideAuto extends AbeAutonomous {
 
 		this.abe.update();
 
-		/*while(opModeIsActive()){
-			this.abe.update();
-
-			telemetry.addData("pose", this.abe.drive.getPoseEstimate());
-			telemetry.update();
-		}*/
 		//Trajectory parkingTrajectory = parkingTrajectories[aprilTagDetection];
 		Trajectory parkingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
 						.splineToLinearHeading(new Pose2d(this.getParkingSpot(aprilTagDetection).getX(), this.getParkingSpot(aprilTagDetection).getY(), 0), 0)

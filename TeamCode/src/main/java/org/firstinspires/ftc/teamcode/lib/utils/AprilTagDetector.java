@@ -60,7 +60,7 @@ public class AprilTagDetector {
 
 	public int getSpottedTagId(){
 		if(this.spottedTag == null)
-			return -1;
+			return INVALID_ID;
 
 		return this.spottedTag.id;
 	}

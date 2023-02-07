@@ -490,10 +490,10 @@ public class AbeDrive {
 	}
 
 	public void update(boolean dontDoAim, double speedOverride){
-		this.update(dontDoAim, speedOverride, PIDControllerRotation.FASTEST);
+		this.update(dontDoAim, speedOverride, PIDControllerRotation.RotationDirection.FASTEST);
 	}
 
-	public void update(boolean dontDoAim, double speedOverride, int directionOverride){
+	public void update(boolean dontDoAim, double speedOverride, PIDControllerRotation.RotationDirection directionOverride){
 		// update odometry
 		this.drive.update();
 

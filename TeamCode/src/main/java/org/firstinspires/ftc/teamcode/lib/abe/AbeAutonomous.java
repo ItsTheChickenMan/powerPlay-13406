@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -93,6 +94,10 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		}
 	}
 
+	public static final Vector2D DEPOSIT_POSITION_RIGHT = new Vector2D(55, 35);
+
+	public static final Vector2D STARTING_POSITION_RIGHT = new Vector2D(10.25, 33);
+
 	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 1.5);
 	public static final Vector2D CONE_STACK_LEFT_POSITION = new Vector2D(AbeAutonomous.CONE_STACK_RIGHT_POSITION.getX(), AbeConstants.FIELD_SIZE_INCHES - CONE_STACK_RIGHT_POSITION.getY());
 
@@ -126,7 +131,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	private int updatesSinceCycleSwitch = 0;
 
 	// the saeid method
-	public static double CORRECTION_RATE = 0.25; // inches of correction in the y direction per deposit. this does affect the overall odometry
+	public static double CORRECTION_RATE = 0.0; // inches of correction in the y direction per deposit. this does affect the overall odometry
 
 	private double currentCorrection = 0.0;
 
@@ -157,6 +162,14 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	public static OpenCvCamera createCamera(HardwareMap hardwareMap){
 		int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
 		return OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+	}
+
+	public Vector2D getStartingPosition(){
+		return new Vector2D(STARTING_POSITION_RIGHT.getX(), mode == Mode.LEFT ? JunctionHelper.FIELD_WIDTH - STARTING_POSITION_RIGHT.getY() : STARTING_POSITION_RIGHT.getY());
+	}
+
+	public Vector2D getDepositPosition(){
+		return new Vector2D(DEPOSIT_POSITION_RIGHT.getX(), mode == Mode.LEFT ? JunctionHelper.FIELD_WIDTH - DEPOSIT_POSITION_RIGHT.getY() : DEPOSIT_POSITION_RIGHT.getY());
 	}
 
 	public Vector2D getParkingSpot(int id){
@@ -270,7 +283,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				if(this.updatesSinceCycleSwitch == 1){
 					this.aimAtConeStack(true, true, false);
 
-					double direction = this.mode == Mode.RIGHT ? -1 : 1;
+					double direction = this.mode == Mode.RIGHT ? 1 : -1;
 
 					this.currentCorrection += CORRECTION_RATE * direction;
 
@@ -303,7 +316,9 @@ public abstract class AbeAutonomous extends AbeOpMode {
 
 	public void update(){
 		// update bot
-		this.abe.update(PIDControllerRotation.CW);
+		// NOTE: overridden to CW rotation because of a strange bug where the pose estimate drifts if rotating back and forth.
+		// it doesn't happen only rotating in one direction, for some reason, so we force all rotation to CW only unless within tolerance
+		this.abe.update(PIDControllerRotation.RotationDirection.CW);
 	}
 
 	public int getConesInStack(){

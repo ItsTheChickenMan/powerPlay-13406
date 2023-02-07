@@ -245,10 +245,10 @@ public class AbeBot {
 	public static double SPEED_OVERRIDE = 0.7;
 
 	public void update(){
-		this.update(PIDControllerRotation.FASTEST);
+		this.update(PIDControllerRotation.RotationDirection.FASTEST);
 	}
 
-	public void update(int directionOverride){
+	public void update(PIDControllerRotation.RotationDirection directionOverride){
 		// update drive
 		this.drive.update(!doDriveAim, SPEED_OVERRIDE, directionOverride);
 
