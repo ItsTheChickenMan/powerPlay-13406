@@ -145,7 +145,9 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		this.abe.arm.clampFingers();
 
 		// deselect selected junction
-		this.chosenJunction = null;
+		// NOTE: commenting this out because it slightly slows down tall cycles a bit because I have to re-aim the robot at the junction each time.
+		// this way, it aims itself back at the previously selected junctions as a convenience (which is the near tall in most cases)
+		//this.chosenJunction = null;
 	}
 
 	public void setupGrabbingMode(){
@@ -153,7 +155,6 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		this.abe.arm.unclampFingers();
 
 		// move the arm to a good grabbing position
-		// FIXME: add to AbeConstants
 		//this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
 	}
 
@@ -169,6 +170,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// just here if I need it...
 	}
 
+	// FIXME: controller states don't work?
 	public void updateControllerStates(){
 		this.g2ALastPressed = gamepad2.a;
 		this.g2BLastPressed = gamepad2.b;
@@ -330,6 +332,8 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				double height;
 
 				if(down){
+					// we want to automatically aim at our drop spot if we're within distance, otherwise aim at the
+
 					// doing stack aim?
 					if(this.doingStack) {
 						// snap stack height
@@ -368,8 +372,6 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 					// 21 7/8, as negotiated by Saeid and Phoenix
 					this.abe.arm.aimAt(21.875, height);
-
-					GlobalStorage.globalTelemetry.addData("height", height);
 				} else {
 					this.doingStack = false;
 
