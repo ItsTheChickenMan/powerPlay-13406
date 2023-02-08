@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 
 /**
  * @brief Abstract class containing required values and methods for using AbeBot during the Teleop period
@@ -144,6 +145,9 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// ensure clamped
 		this.abe.arm.clampFingers();
 
+		// enable aim to substation by default
+		this.aimingToSubstation = true;
+
 		// deselect selected junction
 		// NOTE: commenting this out because it slightly slows down tall cycles a bit because I have to re-aim the robot at the junction each time.
 		// this way, it aims itself back at the previously selected junctions as a convenience (which is the near tall in most cases)
@@ -189,6 +193,10 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	private boolean doingStack = false;
 
 	private boolean stackHeightChangedLastFrame = false;
+
+	// if we're currently using auto-aim to substation if within distance
+	private boolean aimingToSubstation = true;
+	private boolean substationChangedLastFrame = false;
 
 	public void update(){
 		// update/fetch delta
@@ -262,11 +270,12 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.arm.aimAt(6, 20);
 
 					// do regular drive rotation
-					// TODO: why is this commented out?  thanks for being a dickhead and not leaving a comment, phoenix
+					// TODO: why was this commented out?  thanks for being a dickhead and not leaving a comment, phoenix
 					// 	-phoenix
-					//this.checkDriveRotation();
+					this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
 					// update wrist angle slightly as a visual indication of lack of chosen junction
+					// TODO: this doesn't work?
 					this.abe.arm.addToWristAngleDegrees(55);
 				}
 
@@ -324,59 +333,89 @@ public abstract class AbeTeleOp extends AbeOpMode {
 			}
 
 			case GRABBING: {
-				// do drive rotation calculation, accounting for slowmode setting
-				this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
-
 				boolean down = gamepad2.right_trigger > 0.05;
-
-				double height;
+				boolean modeSwitch = gamepad2.b;
 
 				if(down){
-					// we want to automatically aim at our drop spot if we're within distance, otherwise aim at the
+					// we want to automatically aim at our drop spot if we're within distance & enabled, otherwise aim at the usual grab zone
+					Vector2D pickupSpot = this.getPickupSpot();
 
-					// doing stack aim?
-					if(this.doingStack) {
-						// snap stack height
-						this.selectedStackHeight = Math.max(Math.min(this.selectedStackHeight, 4), 0);
+					double distance2 = pickupSpot.subtract(this.abe.drive.getPoseEstimateAsVector()).getNormSq();
 
-						// get height
-						height = this.getConeStackHeight(this.selectedStackHeight);
-
-						// check for stack change
-						if(gamepad2.dpad_up && !this.stackHeightChangedLastFrame){
-							this.selectedStackHeight++;
+					// do substation aim mode
+					if(this.aimingToSubstation && distance2 < AbeConstants.SUBSTATION_AIM_CUTOFF_INCHES_SQ){
+						// check mode switch
+						if(modeSwitch && !this.substationChangedLastFrame){
+							this.aimingToSubstation = false;
 						}
 
-						if (gamepad2.dpad_down && !this.stackHeightChangedLastFrame){
-							this.selectedStackHeight--;
-						}
+						boolean extending = gamepad2.left_trigger > 0.05;
 
-						if(gamepad2.dpad_down || gamepad2.dpad_up){
-							this.stackHeightChangedLastFrame = true;
-						} else {
-							this.stackHeightChangedLastFrame = false;
-						}
+						// aim at pickup spot
+						this.abe.aimAt(pickupSpot.getX(), AbeConstants.DEFAULT_GRABBING_HEIGHT, pickupSpot.getY(), true, true, extending);
 					}
-					// otherwise go to normal height
+					// do regular grab mode
 					else {
-						height = 3.25;
+						// check mode switch
+						if(modeSwitch && !this.substationChangedLastFrame){
+							this.aimingToSubstation = true;
+						}
+
+						// do drive rotation calculation, accounting for slowmode setting
+						this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
+
+						double height;
+
+						// doing stack aim?
+						if (this.doingStack) {
+							// snap stack height
+							this.selectedStackHeight = Math.max(Math.min(this.selectedStackHeight, 4), 0);
+
+							// get height
+							height = this.getConeStackHeight(this.selectedStackHeight);
+
+							// check for stack change
+							if (gamepad2.dpad_up && !this.stackHeightChangedLastFrame) {
+								this.selectedStackHeight++;
+							}
+
+							if (gamepad2.dpad_down && !this.stackHeightChangedLastFrame) {
+								this.selectedStackHeight--;
+							}
+
+							if (gamepad2.dpad_down || gamepad2.dpad_up) {
+								this.stackHeightChangedLastFrame = true;
+							} else {
+								this.stackHeightChangedLastFrame = false;
+							}
+						}
+						// otherwise go to normal height
+						else {
+							height = AbeConstants.DEFAULT_GRABBING_HEIGHT;
+						}
+
+						// check if stack aim is pressed
+						if (gamepad2.dpad_up && !this.doingStack) {
+							// enable stack aim height
+							this.doingStack = true;
+						}
+
+						height -= AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
+
+						// 21 7/8, as negotiated by Saeid and Phoenix
+						this.abe.arm.aimAt(21.875, height);
 					}
-
-					// check if stack aim is pressed
-					if(gamepad2.dpad_up && !this.doingStack){
-						// enable stack aim height
-						this.doingStack = true;
-					}
-
-					height -= AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
-
-					// 21 7/8, as negotiated by Saeid and Phoenix
-					this.abe.arm.aimAt(21.875, height);
 				} else {
+					// disable stack
 					this.doingStack = false;
+
+					// reenable auto aim
+					this.aimingToSubstation = true;
 
 					this.abe.arm.aimAt(6, 20);
 				}
+
+				this.substationChangedLastFrame = modeSwitch;
 
 				// check for grab
 				if(gamepad2.a && !isEventScheduled(this.switchModeSchedule)){
@@ -409,5 +448,13 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		this.abe.update();
 
 		this.updateControllerStates();
+	}
+
+	public Vector2D getPickupSpot(){
+		int side = this.abe.drive.getPoseEstimate().getY() > JunctionHelper.FIELD_LENGTH/2 ? 1 : -1;
+
+		Vector2D pickupSpot = AbeConstants.SUBSTATION_DROP_SPOT_CENTER.add(new Vector2D(0, AbeConstants.SUBSTATION_DROP_SPOT_OFFSET*side));
+
+		return pickupSpot;
 	}
 }

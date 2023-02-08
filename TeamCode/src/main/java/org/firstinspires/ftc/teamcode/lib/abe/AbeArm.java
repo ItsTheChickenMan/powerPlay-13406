@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
  */
 public class AbeArm {
 	// constants //
-	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.75);
+	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.6);
 	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.25);
 
 	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.5;
@@ -507,15 +507,15 @@ public class AbeArm {
 		if(this.isAiming() && !this.isManualControlEnabled()){
 			// falloff from max speed to min speed based on extension
 			// FIXME: probably should be a constant
-			double maxSpeed = Math.toRadians(70);
-			double minSpeed = Math.toRadians(20);
+			double minElbowSpeed = Math.toRadians(40);
+			double maxElbowSpeed = Math.toRadians(70);
 
 			double minExtension = 24.0;
-			double maxExtension = 36.0;
+			double maxExtension = 48.0;
 
 			double interpolation = (Range.clip(this.slides.getExtension(), minExtension, maxExtension) - minExtension) / (maxExtension - minExtension);
 
-			double speed = (1-interpolation) * (maxSpeed - minSpeed) + minSpeed;
+			double speed = (1-interpolation) * (maxElbowSpeed - minElbowSpeed) + minElbowSpeed;
 
 			if(this.doElbowAim) this.elbow.rotateToRadians(this.aimElbowAngle, speed);
 

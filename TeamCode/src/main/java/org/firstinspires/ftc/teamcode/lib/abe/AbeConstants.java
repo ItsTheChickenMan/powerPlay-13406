@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
@@ -12,6 +13,16 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
  * Names should be very self-documenting
  */
 public class AbeConstants {
+	// misc/general...//
+
+	public static final double SUBSTATION_AIM_CUTOFF_INCHES = 36.0;
+	public static final double SUBSTATION_AIM_CUTOFF_INCHES_SQ = SUBSTATION_AIM_CUTOFF_INCHES * SUBSTATION_AIM_CUTOFF_INCHES;
+
+	public static final Vector2D SUBSTATION_DROP_SPOT_CENTER = new Vector2D(6, 70.75);
+	public static final double SUBSTATION_DROP_SPOT_OFFSET = 10.0;
+
+	public static final double DEFAULT_GRABBING_HEIGHT = 3.25;
+
 	// drive related... //
 	public static final double DRIVE_GEAR_RATIO = 1; // 1:1
 	public static final double DRIVE_TICK_RATIO = 384.5; // 384.5 ticks/rotation
@@ -19,6 +30,7 @@ public class AbeConstants {
 	public static final double DRIVE_WHEEL_CIRCUMFERENCE_INCHES = 1.88976378 * Math.PI * 2;
 	public static final double DRIVE_MAX_VELOCITY = 36; // inches/second
 
+	// TODO: swap to using roadrunner PIDF instead, seems way more reliable and has good tuning opmodes
 	public static final double DRIVE_AIM_P_CONSTANT = 95;
 	public static final double DRIVE_AIM_I_CONSTANT = 0;
 	public static final double DRIVE_AIM_D_CONSTANT = 0;
@@ -32,7 +44,7 @@ public class AbeConstants {
 	// generally arm related... //
 	//public static final double ARM_LATERAL_OFFSET_INCHES = 2.4375;
 	public static final double ARM_LATERAL_OFFSET_INCHES = 2.1;
-	public static final double ARM_LONGINAL_OFFSET_INCHES = -5.0;
+	public static final double ARM_LONGINAL_OFFSET_INCHES = -5.0; // longinal is not a word.  I don't care
 	public static final double ARM_VERTICAL_OFFSET_INCHES = 4.625;
 	public static final double ARM_POLE_HEIGHT_OFFSET_INCHES = 0.0; // how many inches to aim above a pole
 
@@ -41,9 +53,10 @@ public class AbeConstants {
 	//public static final double ANGULAR_FALLOFF_PER_INCH_RADIANS = Math.toRadians(-4.0) / 30.0;
 	//public static final double ANGULAR_FALLOFF_PER_INCH_RADIANS = Math.toRadians(-0.0) / 30.0;
 
-	//public static final double HEIGHT_FALLOFF_PER_INCH_INCHES = -0.11439;
+	// HEIGHT_FALLOFF_PER_INCH_INCHES = -0.11439;
 
 	// sag correction constants
+	// NOTE: this was for a planned physically correct method of accounting for sag, but it doesn't work very well and is wicked hard to tune
 
 	// TUNING
 	// (To correct for sag, the AbeArm class computes the expected torque that the arm applies to the elbow's point of rotation and then accounts for it with the ANGULAR_CORRECTION_PER_KG_IN value)
