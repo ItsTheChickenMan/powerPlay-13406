@@ -96,13 +96,11 @@ public abstract class AbeAutonomous extends AbeOpMode {
 
 	public static final Vector2D DEPOSIT_POSITION_RIGHT = new Vector2D(55, 35);
 
-	public static final Vector2D STARTING_POSITION_RIGHT = new Vector2D(10.25, 33);
+	public static final Vector2D STARTING_POSITION_RIGHT = new Vector2D(9.7, 35.5);
 
-	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 1.5);
-	public static final Vector2D CONE_STACK_LEFT_POSITION = new Vector2D(AbeAutonomous.CONE_STACK_RIGHT_POSITION.getX(), AbeConstants.FIELD_SIZE_INCHES - CONE_STACK_RIGHT_POSITION.getY());
+	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 3);
 
-	public static final Vector2D[] PARKING_SPOTS_LEFT = {new Vector2D(56, JunctionHelper.FIELD_WIDTH - 62), new Vector2D(60, JunctionHelper.FIELD_WIDTH - 40), new Vector2D(60,  JunctionHelper.FIELD_WIDTH - 7)};
-	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(56, 60), new Vector2D(56, 36), new Vector2D(56, 11.5)};
+	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(59, 60), new Vector2D(59, 36), new Vector2D(59, 14)};
 
 	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
 
@@ -173,11 +171,16 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	}
 
 	public Vector2D getParkingSpot(int id){
+		Vector2D spot = PARKING_SPOTS_RIGHT[id];
+
 		if(this.mode == Mode.LEFT){
-			return AbeAutonomous.PARKING_SPOTS_LEFT[id];
-		} else {
-			return AbeAutonomous.PARKING_SPOTS_RIGHT[id];
+			// flip spot
+			spot = PARKING_SPOTS_RIGHT[2 - id];
+
+			spot = new Vector2D(spot.getX(), JunctionHelper.FIELD_WIDTH - spot.getY());
 		}
+
+		return spot;
 	}
 
 	public void cycle(){
@@ -189,7 +192,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					this.aimAtConeStack();
 				}
 
-				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule) && gamepad2.a){
+				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule)){
 					// clamp
 					this.abe.arm.clampFingers();
 
@@ -203,7 +206,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 			case LIFTING: {
 				// start aiming at junction with elbow
 				if(this.updatesSinceCycleSwitch == 1){
-					double offset = 1.5;
+					double offset = 2;
 
 					offset *= this.mode == Mode.LEFT ? -1 : 1;
 
@@ -257,7 +260,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				if(!isEventScheduled(this.switchCycleSchedule)){
 					this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_DEPOSITING_ANGLE_DEGREES);
 
-					if(gamepad2.a) this.switchCycleSchedule = getScheduledTime(0.25);
+					this.switchCycleSchedule = getScheduledTime(0.25);
 				}
 
 				break;
@@ -318,7 +321,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		// update bot
 		// NOTE: overridden to CW rotation because of a strange bug where the pose estimate drifts if rotating back and forth.
 		// it doesn't happen only rotating in one direction, for some reason, so we force all rotation to CW only unless within tolerance
-		this.abe.update(PIDControllerRotation.RotationDirection.CW);
+		this.abe.update(this.mode == Mode.RIGHT ? PIDControllerRotation.RotationDirection.CW : PIDControllerRotation.RotationDirection.CCW);
 	}
 
 	public int getConesInStack(){
@@ -326,7 +329,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 	}
 
 	public Vector2D getConeStackPosition(){
-		return this.mode == Mode.LEFT ? AbeAutonomous.CONE_STACK_LEFT_POSITION : AbeAutonomous.CONE_STACK_RIGHT_POSITION;
+		return this.mode == Mode.LEFT ? new Vector2D(CONE_STACK_RIGHT_POSITION.getX(), JunctionHelper.FIELD_LENGTH - CONE_STACK_RIGHT_POSITION.getY()) : CONE_STACK_RIGHT_POSITION;
 	}
 
 	public double getTopConeStackHeight(){

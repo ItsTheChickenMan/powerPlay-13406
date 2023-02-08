@@ -33,7 +33,7 @@ public class AbeDrive {
 	}
 
 	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.8);
-	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.05);
+	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.25);
 
 	// rr interface
 	// FIXME: back to private

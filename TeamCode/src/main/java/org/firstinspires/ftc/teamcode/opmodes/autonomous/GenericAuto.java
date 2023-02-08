@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.opmodes.autonomous;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeAutonomous;
@@ -16,12 +17,16 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 public abstract class GenericAuto extends AbeAutonomous {
 	// note: including preload
 	protected int[] depositAttempts = new int[]{3, 3, 3};
-	protected Mode mode = Mode.LEFT;
-	protected Vector2D depositJunction = new Vector2D(72, 94.5);
+	protected Mode mode = Mode.RIGHT;
+
+	public static double CYCLE_TIME_REQUIRED = 6;
+
+	// NOTE: always relative to right side, mirrors automatically based on mode
+	protected Vector2D depositJunction = new Vector2D(72, 47);
 
 	public void settings(){
 		this.depositAttempts = new int[]{2, 3, 2};
-		this.depositJunction = new Vector2D(72, 48);
+		this.depositJunction = new Vector2D(72, 47);
 		this.mode = Mode.LEFT;
 	}
 
@@ -31,6 +36,10 @@ public abstract class GenericAuto extends AbeAutonomous {
 		GlobalStorage.didAuto = true;
 
 		this.settings();
+
+		if(this.mode == Mode.LEFT){
+			this.depositJunction = new Vector2D(this.depositJunction.getX(), JunctionHelper.FIELD_WIDTH - this.depositJunction.getY());
+		}
 
 		OpenCvCamera camera = AbeAutonomous.createCamera(hardwareMap);
 
@@ -50,7 +59,7 @@ public abstract class GenericAuto extends AbeAutonomous {
 		});
 
 		// setup auto
-		setup(camera, Mode.LEFT, depositJunction);
+		setup(camera, this.mode, depositJunction);
 
 		// load current state from global storage
 		this.loadStateFromGlobalStorage();
@@ -78,17 +87,18 @@ public abstract class GenericAuto extends AbeAutonomous {
 						.build();
 
 		// generate park trajectories
-		//Trajectory[] parkingTrajectories = new Trajectory[3];
+		Trajectory[] parkingTrajectories = new Trajectory[3];
 
-		/*for(int i = 0; i < 3; i++){
+		for(int i = 0; i < 3; i++){
 			parkingTrajectories[i] = this.abe.drive.trajectoryBuilder(openingTrajectory.end())
-							.splineToSplineHeading(new Pose2d(this.getParkingSpot(i).getX(), this.getParkingSpot(i).getY(), 0), 0)
+							.splineToLinearHeading(new Pose2d(this.getParkingSpot(i).getX(), this.getParkingSpot(i).getY(), 0), 0)
 							.build();
-		}*/
+		}
 
 		// calculate initial elbow angle
 		//double openingElbowAngle = this.abe.arm.calculateAimElbowAngleRadians(depositJunction.getX(), depositJunction.getY());
-		double openingElbowAngle = 50;
+		double openingElbowAngle = 60;
+		double openingSlidesLength = 24;
 
 		// wait for start
 		while(!isStarted() && !isStopRequested()){
@@ -111,6 +121,9 @@ public abstract class GenericAuto extends AbeAutonomous {
 		}
 
 		// START
+
+		ElapsedTime autoTimer = new ElapsedTime();
+		autoTimer.reset();
 
 		// check april tag detection
 		int aprilTagDetection = this.aprilTagDetector.getSpottedTagId();
@@ -137,9 +150,8 @@ public abstract class GenericAuto extends AbeAutonomous {
 			}*/
 
 			// set elbow angle to approximate correct angle (shaves off a bit of time)
-			this.abe.arm.enableManualControl();
-			this.abe.arm.setElbowAngleRadians(openingElbowAngle, Math.toRadians(20));
-			this.abe.arm.disableManualControl();
+			this.abe.arm.aimAt(10, 20);
+			this.abe.arm.update();
 
 			// move to position
 			this.abe.drive.followTrajectory(openingTrajectory);
@@ -153,11 +165,14 @@ public abstract class GenericAuto extends AbeAutonomous {
 			double start = this.timer.seconds();
 
 			// cycle cones in stack
-			while (this.getConesInStack() > (5 - coneAttempts)) {
+			while (this.getConesInStack() > (5 - coneAttempts) && !isStopRequested() && (30 - autoTimer.seconds()) > CYCLE_TIME_REQUIRED) {
 				cycle();
 
 				update();
 
+				telemetry.addData("elbow steady", this.abe.arm.isElbowSteady());
+				telemetry.addData("slides steady", this.abe.arm.isSlidesSteady());
+				telemetry.addData("drive steady", this.abe.drive.isSteady());
 				GlobalStorage.globalTelemetry.update();
 
 				totalLoops++;
@@ -177,20 +192,47 @@ public abstract class GenericAuto extends AbeAutonomous {
 
 		this.abe.update();
 
+		Trajectory parkingTrajectory;
+
+		if((30 - autoTimer.seconds()) < 2){
+			// use pregenerated in a pinch
+			parkingTrajectory = parkingTrajectories[aprilTagDetection];
+		} else {
+			parkingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
+							.splineToLinearHeading(new Pose2d(this.getParkingSpot(aprilTagDetection).getX(), this.getParkingSpot(aprilTagDetection).getY(), 0), 0)
+							.build();
+		}
 		//Trajectory parkingTrajectory = parkingTrajectories[aprilTagDetection];
-		Trajectory parkingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
-						.splineToLinearHeading(new Pose2d(this.getParkingSpot(aprilTagDetection).getX(), this.getParkingSpot(aprilTagDetection).getY(), 0), 0)
-						.build();
 
 		// follow trajectory
-		this.abe.drive.followTrajectory(parkingTrajectory);
+		this.abe.drive.followTrajectoryAsync(parkingTrajectory);
 
-		// save state
+		//this.saveStateToGlobalStorage();
+
+
+		// amount of time to save for
+		double endTime = autoTimer.seconds();
+		double saveTime = 2;
+
+		// save at least once
 		this.saveStateToGlobalStorage();
 
-		while(opModeIsActive()){
-			// update robot
+		while(!isStopRequested()){
 			this.abe.drive.updateRROnly();
+
+			telemetry.addData("angle", this.abe.arm.getElbowAngleDegrees());
+			telemetry.addData("length", this.abe.arm.getSlidesExtension());
+
+			// without this additional check, the whole thing breaks.  I wish I knew why...
+			// overall, it's generally safe to save for a short amount of time and quit
+			// as a just-in-case catch, don't save in the last half second either
+			if( (autoTimer.seconds()-endTime) < saveTime && autoTimer.seconds() < 29.5){
+				this.saveStateToGlobalStorage();
+				telemetry.addData("global angle", GlobalStorage.currentElbowAngleRadians);
+				telemetry.addData("global length", GlobalStorage.currentSlidesExtension);
+			}
+
+			telemetry.update();
 		}
 	}
 }

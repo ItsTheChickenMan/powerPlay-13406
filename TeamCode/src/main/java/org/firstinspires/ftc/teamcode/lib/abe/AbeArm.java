@@ -13,11 +13,11 @@ import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
  */
 public class AbeArm {
 	// constants //
-	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.25);
-	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.1);
+	public static final double ELBOW_STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.75);
+	public static final double ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.25);
 
-	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.25;
-	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.1;
+	public static final double SLIDES_STEADY_STATE_ERROR_TOLERANCE = 0.5;
+	public static final double SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE = 0.25;
 
 	// members //
 
@@ -41,7 +41,8 @@ public class AbeArm {
 	// is the arm in a steady state?
 	// if not aiming, always true
 	// see AbeDrive for similar truth conditions
-	private boolean steady;
+	private boolean elbowSteady;
+	private boolean slidesSteady;
 
 	// slides... //
 
@@ -114,8 +115,16 @@ public class AbeArm {
 		return this.slides.getRelativeExtension();
 	}
 
+	public boolean isElbowSteady() {
+		return elbowSteady;
+	}
+
+	public boolean isSlidesSteady(){
+		return slidesSteady;
+	}
+
 	public boolean isSteady(){
-		return this.steady;
+		return this.isElbowSteady() && this.isSlidesSteady();
 	}
 
 	/**
@@ -540,14 +549,14 @@ public class AbeArm {
 			GlobalStorage.globalTelemetry.addData("slidesError", slidesError);
 			GlobalStorage.globalTelemetry.addData("slidesDerivative", slidesDerivative);*/
 
-			this.steady =
-							( Math.abs(elbowError) < AbeArm.ELBOW_STEADY_STATE_ERROR_TOLERANCE && Math.abs(elbowDerivative) < AbeArm.ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE) &&
-							( Math.abs(slidesError) < AbeArm.SLIDES_STEADY_STATE_ERROR_TOLERANCE && Math.abs(slidesDerivative) < AbeArm.SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE);
+			this.elbowSteady = ( Math.abs(elbowError) < AbeArm.ELBOW_STEADY_STATE_ERROR_TOLERANCE && Math.abs(elbowDerivative) < AbeArm.ELBOW_STEADY_STATE_DERIVATIVE_TOLERANCE);
+			this.slidesSteady = ( Math.abs(slidesError) < AbeArm.SLIDES_STEADY_STATE_ERROR_TOLERANCE && Math.abs(slidesDerivative) < AbeArm.SLIDES_STEADY_STATE_DERIVATIVE_TOLERANCE);
 
 			this.lastElbowError = elbowError;
 			this.lastSlidesError = slidesError;
 		} else {
-			this.steady = true;
+			this.elbowSteady = true;
+			this.slidesSteady = true;
 		}
 
 		// check elbow

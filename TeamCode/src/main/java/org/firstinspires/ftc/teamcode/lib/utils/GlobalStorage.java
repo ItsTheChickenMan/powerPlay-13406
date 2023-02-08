@@ -16,10 +16,10 @@ public class GlobalStorage {
     public static Pose2d currentPose;
 
     // current elbow angle
-    public static double currentElbowAngleRadians;
+    public static Double currentElbowAngleRadians;
 
     // current slides extension
-    public static double currentSlidesExtension;
+    public static Double currentSlidesExtension;
 
     // did we do auto?
     // generally going to be yes
@@ -38,5 +38,6 @@ public class GlobalStorage {
         telemetry.addData("current pose", GlobalStorage.currentPose != null ? GlobalStorage.currentPose.toString() : "null");
         telemetry.addData("current elbow angle", GlobalStorage.currentElbowAngleRadians);
         telemetry.addData("current slides extension", GlobalStorage.currentSlidesExtension);
+        telemetry.addData("did auto", GlobalStorage.didAuto);
     }
 }

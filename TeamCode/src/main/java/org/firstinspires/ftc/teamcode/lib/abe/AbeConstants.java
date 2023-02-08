@@ -12,8 +12,6 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
  * Names should be very self-documenting
  */
 public class AbeConstants {
-	public static final double FIELD_SIZE_INCHES = 140; // field length and width in inches
-
 	// drive related... //
 	public static final double DRIVE_GEAR_RATIO = 1; // 1:1
 	public static final double DRIVE_TICK_RATIO = 384.5; // 384.5 ticks/rotation
