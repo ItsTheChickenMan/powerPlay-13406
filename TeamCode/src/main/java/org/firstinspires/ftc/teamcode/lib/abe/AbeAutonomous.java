@@ -98,9 +98,9 @@ public abstract class AbeAutonomous extends AbeOpMode {
 
 	public static final Vector2D STARTING_POSITION_RIGHT = new Vector2D(9.7, 35.5);
 
-	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 3);
+	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 1.875);
 
-	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(59, 60), new Vector2D(59, 36), new Vector2D(59, 14)};
+	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(61, 60), new Vector2D(61, 36), new Vector2D(61, 14)};
 
 	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
 
@@ -154,7 +154,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 		this.mode = mode;
 		this.junction = junction;
 
-		this.abe.arm.setSlidesRestingPosition(24.0);
+		this.abe.arm.setSlidesRestingPosition(26.0);
 	}
 
 	public static OpenCvCamera createCamera(HardwareMap hardwareMap){
@@ -192,7 +192,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					this.aimAtConeStack();
 				}
 
-				if(this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule)){
+				if(/*gamepad2.a && */this.abe.isSteady() && !isEventScheduled(this.switchCycleSchedule)){
 					// clamp
 					this.abe.arm.clampFingers();
 
@@ -260,7 +260,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				if(!isEventScheduled(this.switchCycleSchedule)){
 					this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_DEPOSITING_ANGLE_DEGREES);
 
-					this.switchCycleSchedule = getScheduledTime(0.25);
+					/*if(gamepad2.a)*/ this.switchCycleSchedule = getScheduledTime(0.25);
 				}
 
 				break;

@@ -18,8 +18,8 @@ public class AbeConstants {
 	public static final double SUBSTATION_AIM_CUTOFF_INCHES = 36.0;
 	public static final double SUBSTATION_AIM_CUTOFF_INCHES_SQ = SUBSTATION_AIM_CUTOFF_INCHES * SUBSTATION_AIM_CUTOFF_INCHES;
 
-	public static final Vector2D SUBSTATION_DROP_SPOT_CENTER = new Vector2D(6, 70.75);
-	public static final double SUBSTATION_DROP_SPOT_OFFSET = 10.0;
+	public static final Vector2D SUBSTATION_DROP_SPOT_CENTER = new Vector2D(3, 70.75);
+	public static final double SUBSTATION_DROP_SPOT_OFFSET = 8.5;
 
 	public static final double DEFAULT_GRABBING_HEIGHT = 3.25;
 
@@ -286,7 +286,7 @@ public class AbeConstants {
 	public static final double WRIST_BASE_ANGLE_DEGREES = 0;
 	public static final double WRIST_MAX_RANGE_DEGREES = 295;
 	public static final double WRIST_MAX_RANGE_RADIANS = Math.toRadians(AbeConstants.WRIST_MAX_RANGE_DEGREES);
-	public static final double WRIST_OFFSET_INCHES = 5.85; // how far forward the wrist hole is from the end of the slides
+	public static final double WRIST_OFFSET_INCHES = 5.85; // how far forward the wrist hole is from the end of the slides.
 	//public static final double WRIST_OFFSET_INCHES = 0.0; // how far forward the wrist hole is from the end of the slides
 	public static final double WRIST_HOLDING_ANGLE_DEGREES = -45.0;
 	public static final double WRIST_DEPOSITING_ANGLE_DEGREES = 0.0;

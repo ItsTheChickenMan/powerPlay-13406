@@ -32,7 +32,7 @@ public class AbeDrive {
 		ANGLE
 	}
 
-	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.8);
+	public static final double STEADY_STATE_ERROR_TOLERANCE = Math.toRadians(0.6);
 	public static final double STEADY_STATE_DERIVATIVE_TOLERANCE = Math.toRadians(0.25);
 
 	// rr interface
@@ -533,6 +533,8 @@ public class AbeDrive {
 			// determine if we're steady
 			double error = this.pidController.getError();
 			double derivative = this.pidController.getDerivative();
+
+			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));
 /*
 			GlobalStorage.globalTelemetry.addData("heading (degrees)", Math.toDegrees(pose.getHeading()));
 			GlobalStorage.globalTelemetry.addData("error (degrees)", Math.toDegrees(error));

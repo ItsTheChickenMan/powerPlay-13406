@@ -5,6 +5,8 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.path.Path;
 
+import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
+
 import java.util.List;
 
 /**
@@ -20,6 +22,10 @@ public class DashboardUtil {
         double[] yPoints = new double[poseHistory.size()];
         for (int i = 0; i < poseHistory.size(); i++) {
             Pose2d pose = poseHistory.get(i);
+            // phoenix code here
+            // we use coords from bottom right of field, so offset appropriately
+            pose = pose.minus(new Pose2d(JunctionHelper.FIELD_LENGTH/2, JunctionHelper.FIELD_WIDTH/2));
+
             xPoints[i] = pose.getX();
             yPoints[i] = pose.getY();
         }
@@ -34,6 +40,10 @@ public class DashboardUtil {
         for (int i = 0; i < samples; i++) {
             double displacement = i * dx;
             Pose2d pose = path.get(displacement);
+            // phoenix code here
+            // we use coords from bottom right of field, so offset appropriately
+            pose = pose.minus(new Pose2d(JunctionHelper.FIELD_LENGTH/2, JunctionHelper.FIELD_WIDTH/2));
+
             xPoints[i] = pose.getX();
             yPoints[i] = pose.getY();
         }
@@ -45,6 +55,10 @@ public class DashboardUtil {
     }
 
     public static void drawRobot(Canvas canvas, Pose2d pose) {
+        // phoenix code here
+        // we use coords from bottom right of field, so offset appropriately
+        pose = pose.minus(new Pose2d(JunctionHelper.FIELD_LENGTH/2, JunctionHelper.FIELD_WIDTH/2));
+
         canvas.strokeCircle(pose.getX(), pose.getY(), ROBOT_RADIUS);
         Vector2d v = pose.headingVec().times(ROBOT_RADIUS);
         double x1 = pose.getX() + v.getX() / 2, y1 = pose.getY() + v.getY() / 2;

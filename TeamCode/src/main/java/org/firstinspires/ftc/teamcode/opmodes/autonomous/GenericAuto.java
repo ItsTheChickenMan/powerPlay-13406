@@ -83,7 +83,7 @@ public abstract class GenericAuto extends AbeAutonomous {
 		Trajectory openingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
 						// overshoot to move cone
 						.splineToConstantHeading(new Vector2d(depositPosition.getX()+5, depositPosition.getY()), 0)
-						.splineToSplineHeading(depositPose, 0)
+						.splineToConstantHeading(new Vector2d(depositPose.getX(), depositPose.getY()), 0)
 						.build();
 
 		// generate park trajectories
@@ -95,10 +95,7 @@ public abstract class GenericAuto extends AbeAutonomous {
 							.build();
 		}
 
-		// calculate initial elbow angle
-		//double openingElbowAngle = this.abe.arm.calculateAimElbowAngleRadians(depositJunction.getX(), depositJunction.getY());
-		double openingElbowAngle = 60;
-		double openingSlidesLength = 24;
+		// FIXME: calculate initial elbow angle
 
 		// wait for start
 		while(!isStarted() && !isStopRequested()){
@@ -150,7 +147,7 @@ public abstract class GenericAuto extends AbeAutonomous {
 			}*/
 
 			// set elbow angle to approximate correct angle (shaves off a bit of time)
-			this.abe.arm.aimAt(10, 20);
+			this.abe.arm.aimAt(12, 23);
 			this.abe.arm.update();
 
 			// move to position
@@ -165,7 +162,8 @@ public abstract class GenericAuto extends AbeAutonomous {
 			double start = this.timer.seconds();
 
 			// cycle cones in stack
-			while (this.getConesInStack() > (5 - coneAttempts) && !isStopRequested() && (30 - autoTimer.seconds()) > CYCLE_TIME_REQUIRED) {
+			// FIXME: add the backup timer back (fix to only check during safe states)
+			while (this.getConesInStack() > (5 - coneAttempts) && !isStopRequested()/* && (30 - autoTimer.seconds()) > CYCLE_TIME_REQUIRED*/) {
 				cycle();
 
 				update();

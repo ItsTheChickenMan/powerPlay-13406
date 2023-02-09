@@ -1,8 +1,8 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
 public class JunctionHelper {
-	public static final double FIELD_OFFSET = -0.5;
-	public static final double FIELD_SCALE = 23.75;
+	public static final double FIELD_OFFSET = 0.0;
+	public static final double FIELD_SCALE = 23.5;
 	public static final double FIELD_WIDTH = 141;
 	public static final double FIELD_LENGTH = 141;
 

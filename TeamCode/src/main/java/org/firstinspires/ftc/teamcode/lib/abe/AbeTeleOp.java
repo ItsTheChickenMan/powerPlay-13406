@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.lib.abe;
 
 import android.provider.Settings;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -27,9 +28,6 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 	// "chosen" junction point
 	private Vector2D chosenJunction = null;
-
-	// are we extending, or no?
-	private boolean extending = false;
 
 	private double lockPoint = 0;
 	private boolean lockPointSet = false;
@@ -145,18 +143,31 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// ensure clamped
 		this.abe.arm.clampFingers();
 
-		// enable aim to substation by default
-		this.aimingToSubstation = true;
-
 		// deselect selected junction
 		// NOTE: commenting this out because it slightly slows down tall cycles a bit because I have to re-aim the robot at the junction each time.
 		// this way, it aims itself back at the previously selected junctions as a convenience (which is the near tall in most cases)
-		//this.chosenJunction = null;
+
+		// check if we're within distance
+		/*if(this.chosenJunction != null) {
+			double distanceSq = this.abe.drive.getPoseEstimateAsVector().subtract(this.chosenJunction).getNormSq();
+			double maxDistance = 16;
+
+			if (distanceSq > maxDistance * maxDistance) {
+				// too far, clear
+				this.chosenJunction = null;
+			}
+		}*/
+
+		// NOTE: I added this line back, despite the comment above, because losing control over when the robot aimed proved to be too difficult to control to be worth the additional speed.  the speed boost was fairly minimal anyways.
+		this.chosenJunction = null;
 	}
 
 	public void setupGrabbingMode(){
 		// ensure unclamped
 		this.abe.arm.unclampFingers();
+
+		// enable aim to substation by default
+		this.aimingToSubstation = true;
 
 		// move the arm to a good grabbing position
 		//this.abe.arm.aimAt(20, 4.5 - AbeConstants.ARM_VERTICAL_OFFSET_INCHES); // relative to arm position, not bot position...
@@ -216,28 +227,29 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// drive field oriented
 		this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
 
+		// determine current aim state (which part(s) of the arm are active?)
+		boolean extending = gamepad2.left_trigger > 0.05; // TODO: adjustable slide length based on strength of trigger?
+
+		if(extending){
+			// check for correction
+			// TODO: add correction rate to constants
+			double correctionRate = 6.0 * (0.5 + gamepad2.right_trigger); // in inches / second
+
+			Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
+
+			if(poseCorrection.getNorm() > 0.05 && (this.chosenJunction != null || this.aimingToSubstation)){
+				this.abe.drive.addToOffset(poseCorrection.getX(), poseCorrection.getY());
+			}
+		}
+
 		// mode processing
 		// different process depending on mode
 		switch(this.controlMode){
 			// aiming at junctions
 			case AIMING: {
-
-				// determine current aim state (which part(s) of the arm are active?)
-				this.extending = gamepad2.left_trigger > 0.05; // TODO: adjustable slide length based on strength of trigger?
-
 				// check junction being aimed at
-				if(!this.extending) {
+				if(!extending) {
 					this.checkJunctionAim();
-				}
-
-				// check for correction
-				// TODO: add correction rate to constants
-				double correctionRate = 36 * (1.3 - gamepad2.left_trigger); // in inches / second
-
-				Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
-
-				if(poseCorrection.getNorm() > 0.05 && this.extending && this.chosenJunction != null){
-					this.abe.drive.addToOffset(poseCorrection.getX(), poseCorrection.getY());
 				}
 
 				//GlobalStorage.globalTelemetry.addData("x", this.chosenJunction.getX());
@@ -257,7 +269,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 					// TODO: programmable constant
 					if(distance > 4.0) {
-						this.aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, this.extending || isEventScheduled(this.switchModeSchedule));
+						this.aimAtJunctionRaw(this.chosenJunction.getX(), this.chosenJunction.getY(), true, true, extending && this.abe.drive.getAimErrorDegrees() < 35  /* || isEventScheduled(this.switchModeSchedule)*/);
 
 						// keep wrist at 0 degrees
 						this.abe.arm.addToWristAngleDegrees(0.0);
@@ -342,6 +354,9 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 					double distance2 = pickupSpot.subtract(this.abe.drive.getPoseEstimateAsVector()).getNormSq();
 
+					GlobalStorage.globalTelemetry.addData("distance sq", distance2);
+					GlobalStorage.globalTelemetry.addData("cutoff sq", AbeConstants.SUBSTATION_AIM_CUTOFF_INCHES_SQ);
+
 					// do substation aim mode
 					if(this.aimingToSubstation && distance2 < AbeConstants.SUBSTATION_AIM_CUTOFF_INCHES_SQ){
 						// check mode switch
@@ -349,13 +364,14 @@ public abstract class AbeTeleOp extends AbeOpMode {
 							this.aimingToSubstation = false;
 						}
 
-						boolean extending = gamepad2.left_trigger > 0.05;
-
 						// aim at pickup spot
 						this.abe.aimAt(pickupSpot.getX(), AbeConstants.DEFAULT_GRABBING_HEIGHT, pickupSpot.getY(), true, true, extending);
 					}
 					// do regular grab mode
 					else {
+						// clear point
+						this.abe.clearPoint();
+
 						// check mode switch
 						if(modeSwitch && !this.substationChangedLastFrame){
 							this.aimingToSubstation = true;
@@ -406,11 +422,17 @@ public abstract class AbeTeleOp extends AbeOpMode {
 						this.abe.arm.aimAt(21.875, height);
 					}
 				} else {
+					// clear point
+					this.abe.clearPoint();
+
 					// disable stack
 					this.doingStack = false;
 
 					// reenable auto aim
 					this.aimingToSubstation = true;
+
+					// do drive rotation calculation, accounting for slowmode setting
+					this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
 					this.abe.arm.aimAt(6, 20);
 				}

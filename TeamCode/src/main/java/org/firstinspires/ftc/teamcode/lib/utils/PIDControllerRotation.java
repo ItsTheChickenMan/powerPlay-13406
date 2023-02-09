@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.lib.utils;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
- * @brief PIDController specifically for rotation (just uses a special error method, nothing else)
+ * @brief PIDController specifically for rotation
  */
 public class PIDControllerRotation extends PIDController {
 	public enum RotationDirection {
@@ -14,7 +14,7 @@ public class PIDControllerRotation extends PIDController {
 
 	private RotationDirection direction = RotationDirection.FASTEST;
 
-	private double tolerance = Math.toRadians(35.0);
+	private double tolerance = Math.toRadians(20);
 
 	public PIDControllerRotation(double p, double i, double d){
 		super(p, i, d);
@@ -41,8 +41,12 @@ public class PIDControllerRotation extends PIDController {
 		double distance = AngleHelper.angularDistanceRadians(this.target, this.measured);
 
 		// flip distance to one direction if necessary
-		if(Math.abs(distance) > this.tolerance && ((this.direction == RotationDirection.CCW && distance > 0) || (this.direction == RotationDirection.CW && distance < 0))){
-			distance = Math.PI*2 - distance;
+		if(Math.abs(distance) > this.tolerance){
+			if(this.direction == RotationDirection.CW && distance < 0){
+				distance = Math.PI*2 + distance;
+			} else if(this.direction == RotationDirection.CCW && distance > 0){
+				distance = distance - Math.PI*2;
+			}
 		}
 
 		return distance;
