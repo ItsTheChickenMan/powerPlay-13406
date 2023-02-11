@@ -127,6 +127,8 @@ public class AbeArm {
 		return this.isElbowSteady() && this.isSlidesSteady();
 	}
 
+	private double lastSagCounter = 0;
+
 	/**
 	 * @brief get the current height of the arm
 	 *
@@ -137,6 +139,9 @@ public class AbeArm {
 	public double getHeight(){
 		double elbowAngle = this.elbow.getAngleRadians();
 		double slidesExtension = this.slides.getExtension();
+		double currentSagCounter = this.lastSagCounter;
+
+		elbowAngle -= currentSagCounter;
 
 		return Math.sin(elbowAngle + Math.atan(AbeConstants.ELBOW_RADIUS_INCHES / slidesExtension)) * Math.sqrt(slidesExtension*slidesExtension + AbeConstants.ELBOW_RADIUS_INCHES*AbeConstants.ELBOW_RADIUS_INCHES);
 	}
@@ -225,6 +230,8 @@ public class AbeArm {
 		double h = y + AbeConstants.ARM_VERTICAL_OFFSET_INCHES - AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
 
 		double sagCounter = this.calculateSagCounter(x, h, false);
+
+		this.lastSagCounter = sagCounter;
 
 		//GlobalStorage.globalTelemetry.addData("height", h);
 

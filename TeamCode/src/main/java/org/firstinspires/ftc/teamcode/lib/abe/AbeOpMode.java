@@ -103,7 +103,7 @@ public abstract class AbeOpMode extends LinearOpMode {
 		this.abe.setPoseEstimate(pose);
 	}
 
-	public void aimAtJunctionRaw(double x, double y, boolean doDrive, boolean doElbow, boolean doSlides){
+	public void aimAtJunctionRaw(double x, double y, boolean doDrive, boolean doElbow, boolean doSlides, Vector2D offset){
 		// get height
 		double height = JunctionHelper.getJunctionHeightFromRaw(x, y);
 
@@ -114,17 +114,17 @@ public abstract class AbeOpMode extends LinearOpMode {
 		if(height == JunctionHelper.GROUND_JUNCTION_HEIGHT_INCHES) {
 			// special offset for ground
 			// FIXME: constant?
-			height += 4.0;
+			height += 5.0;
 		}	else if(height == JunctionHelper.LOW_JUNCTION_HEIGHT_INCHES) {
-			height += 3.0;
+			height += 2.5;
 		} else {
 			height += AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
 		}
 
 		// get real x and y
 		double[] coords = JunctionHelper.snappedToRaw(JunctionHelper.rawToSnapped(x, y)); // TODO: I hate this
-		double rx = coords[0];
-		double ry = coords[1];
+		double rx = coords[0] + offset.getX();
+		double ry = coords[1] + offset.getY();
 
 		GlobalStorage.globalTelemetry.addData("rx", rx);
 		GlobalStorage.globalTelemetry.addData("ry", ry);
@@ -133,26 +133,12 @@ public abstract class AbeOpMode extends LinearOpMode {
 		this.abe.aimAt(rx, height, ry, doDrive, doElbow, doSlides);
 	}
 
+	public void aimAtJunctionRaw(double x, double y, boolean doDrive, boolean doElbow, boolean doSlides) {
+		this.aimAtJunctionRaw(x, y, doDrive, doElbow, doSlides, new Vector2D(0, 0));
+	}
+
 	public void aimAtJunctionRaw(double x, double y){
 		this.aimAtJunctionRaw(x, y, true, true, true);
-	}
-
-	public void aimAtJunction(int x, int y, boolean doDrive, boolean doElbow, boolean doSlides){
-		// get height
-		double height = JunctionHelper.getJunctionHeight(x, y) + AbeConstants.ARM_POLE_HEIGHT_OFFSET_INCHES;
-
-		if(height == 0.0) return;
-
-		// get real x and y
-		double[] coords = JunctionHelper.snappedToRaw(x, y);
-		double rx = coords[0];
-		double ry = coords[1];
-
-		this.abe.aimAt(rx, height, ry, doDrive, doElbow, doSlides);
-	}
-
-	public void aimAtJunction(int x, int y){
-		this.aimAtJunction(x, y, true, true, true);
 	}
 
 	/**

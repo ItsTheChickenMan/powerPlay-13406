@@ -14,7 +14,7 @@ public class PIDControllerRotation extends PIDController {
 
 	private RotationDirection direction = RotationDirection.FASTEST;
 
-	private double tolerance = Math.toRadians(20);
+	private double tolerance = Math.toRadians(35);
 
 	public PIDControllerRotation(double p, double i, double d){
 		super(p, i, d);

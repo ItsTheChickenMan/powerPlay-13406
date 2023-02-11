@@ -241,6 +241,12 @@ public class AbeBot {
 		return this.aimAtPoint != null;
 	}
 
+	public Vector3D getAimAtPoint(){
+		if(this.isAiming()) return new Vector3D(this.aimAtPoint.getX(), this.aimAtPoint.getY(), this.aimAtPoint.getZ());
+
+		return null;
+	}
+
 	// FIXME: don't forget about this!!!
 	public static double SPEED_OVERRIDE = 0.7;
 

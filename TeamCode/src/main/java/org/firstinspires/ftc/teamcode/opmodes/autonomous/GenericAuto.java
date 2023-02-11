@@ -83,15 +83,19 @@ public abstract class GenericAuto extends AbeAutonomous {
 		Trajectory openingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
 						// overshoot to move cone
 						.splineToConstantHeading(new Vector2d(depositPosition.getX()+5, depositPosition.getY()), 0)
-						.splineToConstantHeading(new Vector2d(depositPose.getX(), depositPose.getY()), 0)
+						.splineToSplineHeading(depositPose, 0)
+						//.splineToConstantHeading(new Vector2d(depositPose.getX(), depositPose.getY()), 0)
 						.build();
+
+		Pose2d parkingPose = new Pose2d(this.getParkingSpot(0).getX(), depositPosition.getY(), 0);
 
 		// generate park trajectories
 		Trajectory[] parkingTrajectories = new Trajectory[3];
 
 		for(int i = 0; i < 3; i++){
-			parkingTrajectories[i] = this.abe.drive.trajectoryBuilder(openingTrajectory.end())
-							.splineToLinearHeading(new Pose2d(this.getParkingSpot(i).getX(), this.getParkingSpot(i).getY(), 0), 0)
+			parkingTrajectories[i] = this.abe.drive.trajectoryBuilder(parkingPose)
+							//.splineToLinearHeading(new Pose2d(this.getParkingSpot(i).getX(), this.getParkingSpot(i).getY(), 0), 0)
+							.lineToLinearHeading(new Pose2d(this.getParkingSpot(i).getX(), this.getParkingSpot(i).getY(), 0))
 							.build();
 		}
 
@@ -109,6 +113,8 @@ public abstract class GenericAuto extends AbeAutonomous {
 
 			// telemetry
 			telemetry.addData("Status", "Initialized");
+			// add a random number so that I don't get too used to seeing the message
+			telemetry.addLine(Math.round(Math.random() * 10000) + " HEY!  Did you remember to do the junction offset?");
 
 			if(this.aprilTagDetector.hasTag()){
 				telemetry.addLine("April Tag found!  Tag id: " + this.aprilTagDetector.getSpottedTagId());
@@ -171,6 +177,9 @@ public abstract class GenericAuto extends AbeAutonomous {
 				telemetry.addData("elbow steady", this.abe.arm.isElbowSteady());
 				telemetry.addData("slides steady", this.abe.arm.isSlidesSteady());
 				telemetry.addData("drive steady", this.abe.drive.isSteady());
+				if(this.abe.isAiming()){
+					telemetry.addData("aim at point", this.abe.getAimAtPoint().toString());
+				}
 				GlobalStorage.globalTelemetry.update();
 
 				totalLoops++;
@@ -190,19 +199,16 @@ public abstract class GenericAuto extends AbeAutonomous {
 
 		this.abe.update();
 
-		Trajectory parkingTrajectory;
+		// generate movement trajectory
+		// lines generate fast so this isn't a huge deal
+		Trajectory lineToParkSpot = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
+						.lineToLinearHeading(parkingPose)
+						.build();
 
-		if((30 - autoTimer.seconds()) < 2){
-			// use pregenerated in a pinch
-			parkingTrajectory = parkingTrajectories[aprilTagDetection];
-		} else {
-			parkingTrajectory = this.abe.drive.trajectoryBuilder(this.abe.drive.getPoseEstimate())
-							.splineToLinearHeading(new Pose2d(this.getParkingSpot(aprilTagDetection).getX(), this.getParkingSpot(aprilTagDetection).getY(), 0), 0)
-							.build();
-		}
-		//Trajectory parkingTrajectory = parkingTrajectories[aprilTagDetection];
+		Trajectory parkingTrajectory = parkingTrajectories[aprilTagDetection];
 
 		// follow trajectory
+		this.abe.drive.followTrajectory(lineToParkSpot);
 		this.abe.drive.followTrajectoryAsync(parkingTrajectory);
 
 		//this.saveStateToGlobalStorage();
@@ -224,7 +230,7 @@ public abstract class GenericAuto extends AbeAutonomous {
 			// without this additional check, the whole thing breaks.  I wish I knew why...
 			// overall, it's generally safe to save for a short amount of time and quit
 			// as a just-in-case catch, don't save in the last half second either
-			if( (autoTimer.seconds()-endTime) < saveTime && autoTimer.seconds() < 29.5){
+			if( (autoTimer.seconds()-endTime) < saveTime && autoTimer.seconds() < 29.9){
 				this.saveStateToGlobalStorage();
 				telemetry.addData("global angle", GlobalStorage.currentElbowAngleRadians);
 				telemetry.addData("global length", GlobalStorage.currentSlidesExtension);

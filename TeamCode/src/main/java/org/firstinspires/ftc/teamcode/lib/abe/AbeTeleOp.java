@@ -32,6 +32,9 @@ public abstract class AbeTeleOp extends AbeOpMode {
 	private double lockPoint = 0;
 	private boolean lockPointSet = false;
 
+	private Vector2D substationOffsetLeft = new Vector2D(0, 0);
+	private Vector2D substationOffsetRight = new Vector2D(0, 0);
+
 	// SPECIFICALLY CONTROLLER STATES //
 	private boolean g2ALastPressed = false;
 	private boolean g2BLastPressed = false;
@@ -227,8 +230,12 @@ public abstract class AbeTeleOp extends AbeOpMode {
 		// drive field oriented
 		this.abe.drive.driveFieldOriented(forward*speed, strafe*speed);
 
+		// substation pickup spot
+		Vector2D pickupSpot = this.getPickupSpot();
+
 		// determine current aim state (which part(s) of the arm are active?)
 		boolean extending = gamepad2.left_trigger > 0.05; // TODO: adjustable slide length based on strength of trigger?
+		boolean onLeftSide = this.abe.drive.getPoseEstimate().getY() > JunctionHelper.FIELD_LENGTH/2;
 
 		if(extending){
 			// check for correction
@@ -237,7 +244,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 			Vector2D poseCorrection = new Vector2D(gamepad2.right_stick_y*delta*correctionRate, gamepad2.right_stick_x*delta*correctionRate);
 
-			if(poseCorrection.getNorm() > 0.05 && (this.chosenJunction != null || this.aimingToSubstation)){
+			if(poseCorrection.getNorm() > 0.05 && (this.chosenJunction != null || this.aimingToSubstation)) {
 				this.abe.drive.addToOffset(poseCorrection.getX(), poseCorrection.getY());
 			}
 		}
@@ -349,78 +356,52 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				boolean modeSwitch = gamepad2.b;
 
 				if(down){
-					// we want to automatically aim at our drop spot if we're within distance & enabled, otherwise aim at the usual grab zone
-					Vector2D pickupSpot = this.getPickupSpot();
+					// clear point
+					this.abe.clearPoint();
 
-					double distance2 = pickupSpot.subtract(this.abe.drive.getPoseEstimateAsVector()).getNormSq();
+					// do drive rotation calculation, accounting for slowmode setting
+					this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
-					GlobalStorage.globalTelemetry.addData("distance sq", distance2);
-					GlobalStorage.globalTelemetry.addData("cutoff sq", AbeConstants.SUBSTATION_AIM_CUTOFF_INCHES_SQ);
+					double height;
 
-					// do substation aim mode
-					if(this.aimingToSubstation && distance2 < AbeConstants.SUBSTATION_AIM_CUTOFF_INCHES_SQ){
-						// check mode switch
-						if(modeSwitch && !this.substationChangedLastFrame){
-							this.aimingToSubstation = false;
+					// doing stack aim?
+					if (this.doingStack) {
+						// snap stack height
+						this.selectedStackHeight = Math.max(Math.min(this.selectedStackHeight, 4), 0);
+
+						// get height
+						height = this.getConeStackHeight(this.selectedStackHeight);
+
+						// check for stack change
+						if (gamepad2.dpad_up && !this.stackHeightChangedLastFrame) {
+							this.selectedStackHeight++;
 						}
 
-						// aim at pickup spot
-						this.abe.aimAt(pickupSpot.getX(), AbeConstants.DEFAULT_GRABBING_HEIGHT, pickupSpot.getY(), true, true, extending);
+						if (gamepad2.dpad_down && !this.stackHeightChangedLastFrame) {
+							this.selectedStackHeight--;
+						}
+
+						if (gamepad2.dpad_down || gamepad2.dpad_up) {
+							this.stackHeightChangedLastFrame = true;
+						} else {
+							this.stackHeightChangedLastFrame = false;
+						}
 					}
-					// do regular grab mode
+					// otherwise go to normal height
 					else {
-						// clear point
-						this.abe.clearPoint();
-
-						// check mode switch
-						if(modeSwitch && !this.substationChangedLastFrame){
-							this.aimingToSubstation = true;
-						}
-
-						// do drive rotation calculation, accounting for slowmode setting
-						this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
-
-						double height;
-
-						// doing stack aim?
-						if (this.doingStack) {
-							// snap stack height
-							this.selectedStackHeight = Math.max(Math.min(this.selectedStackHeight, 4), 0);
-
-							// get height
-							height = this.getConeStackHeight(this.selectedStackHeight);
-
-							// check for stack change
-							if (gamepad2.dpad_up && !this.stackHeightChangedLastFrame) {
-								this.selectedStackHeight++;
-							}
-
-							if (gamepad2.dpad_down && !this.stackHeightChangedLastFrame) {
-								this.selectedStackHeight--;
-							}
-
-							if (gamepad2.dpad_down || gamepad2.dpad_up) {
-								this.stackHeightChangedLastFrame = true;
-							} else {
-								this.stackHeightChangedLastFrame = false;
-							}
-						}
-						// otherwise go to normal height
-						else {
-							height = AbeConstants.DEFAULT_GRABBING_HEIGHT;
-						}
-
-						// check if stack aim is pressed
-						if (gamepad2.dpad_up && !this.doingStack) {
-							// enable stack aim height
-							this.doingStack = true;
-						}
-
-						height -= AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
-
-						// 21 7/8, as negotiated by Saeid and Phoenix
-						this.abe.arm.aimAt(21.875, height);
+						height = AbeConstants.DEFAULT_GRABBING_HEIGHT;
 					}
+
+					// check if stack aim is pressed
+					if (gamepad2.dpad_up && !this.doingStack) {
+						// enable stack aim height
+						this.doingStack = true;
+					}
+
+					height -= AbeConstants.ARM_VERTICAL_OFFSET_INCHES;
+
+					// 21 7/8, as negotiated by Saeid and Phoenix
+					this.abe.arm.aimAt(21.875, height);
 				} else {
 					// clear point
 					this.abe.clearPoint();
@@ -428,25 +409,15 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					// disable stack
 					this.doingStack = false;
 
-					// reenable auto aim
-					this.aimingToSubstation = true;
-
 					// do drive rotation calculation, accounting for slowmode setting
 					this.checkDriveRotation(Math.min(1.2 - speedTrigger, 1.0));
 
 					this.abe.arm.aimAt(6, 20);
 				}
 
-				this.substationChangedLastFrame = modeSwitch;
-
 				// check for grab
 				if(gamepad2.a && !isEventScheduled(this.switchModeSchedule)){
 					this.abe.arm.clampFingers();
-
-					// decrease stack size for grab
-					if(this.doingStack){
-						this.selectedStackHeight--;
-					}
 
 					// schedule mode switch in half a second
 					this.switchModeSchedule = getScheduledTime(0.4);
@@ -456,6 +427,11 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				if( isScheduledEventHappening(this.switchModeSchedule) ){
 					// unschedule the switch
 					this.switchModeSchedule = UNSCHEDULED;
+
+					// decrease stack size for grab
+					if(this.doingStack){
+						this.selectedStackHeight--;
+					}
 
 					// cleanup + setup
 					this.cleanupGrabbingMode();

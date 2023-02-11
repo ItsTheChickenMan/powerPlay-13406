@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.lib.utils.AprilTagDetector;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.PIDControllerRotation;
 import org.firstinspires.ftc.teamcode.util.Encoder;
@@ -98,13 +99,14 @@ public abstract class AbeAutonomous extends AbeOpMode {
 
 	public static final Vector2D STARTING_POSITION_RIGHT = new Vector2D(9.7, 35.5);
 
-	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 1.875);
+	public static final Vector2D CONE_STACK_RIGHT_POSITION = new Vector2D(58.5, 2);
 
-	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(61, 60), new Vector2D(61, 36), new Vector2D(61, 14)};
+	public static final Vector2D[] PARKING_SPOTS_RIGHT = {new Vector2D(60, 60), new Vector2D(60, 36), new Vector2D(60, 14)};
 
-	protected static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
+	public static final double SAFE_CONE_LIFTING_DISTANCE = 6.0;
+	public static final double CONE_LIFT_PULLBACK = 4;
 
-	protected static final double GRAB_ANGLE_ERROR_DEGREES = 10.0;
+	protected static final double GRAB_ANGLE_ERROR_DEGREES = 4.0;
 	protected static final double EXTENSION_ANGLE_ERROR_DEGREES = 10.0;
 
 	// misc. //
@@ -206,7 +208,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 			case LIFTING: {
 				// start aiming at junction with elbow
 				if(this.updatesSinceCycleSwitch == 1){
-					double offset = 2;
+					double offset = CONE_LIFT_PULLBACK;
 
 					offset *= this.mode == Mode.LEFT ? -1 : 1;
 
@@ -243,7 +245,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 			case EXTENDING: {
 				// aim with all three components
 				if(this.updatesSinceCycleSwitch == 1) {
-					this.aimAtJunctionRaw(this.junction.getX(), this.junction.getY(), true, true, true);
+					this.aimAtJunctionRaw(this.junction.getX(), this.junction.getY(), true, true, true, GlobalStorage.autoJunctionOffset);
 				}
 
 				// schedule switch when drive and arm are stable
@@ -260,7 +262,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				if(!isEventScheduled(this.switchCycleSchedule)){
 					this.abe.arm.addToWristAngleDegrees(AbeConstants.WRIST_DEPOSITING_ANGLE_DEGREES);
 
-					/*if(gamepad2.a)*/ this.switchCycleSchedule = getScheduledTime(0.25);
+					/*if(gamepad2.a) */this.switchCycleSchedule = getScheduledTime(0.25);
 				}
 
 				break;
