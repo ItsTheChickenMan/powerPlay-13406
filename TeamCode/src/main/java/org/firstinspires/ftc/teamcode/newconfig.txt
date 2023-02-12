@@ -1,0 +1,22 @@
+Nothing is built yet, but redesign hardware is looking like:
+
+-shoulder (same as previous elbow, just renamed)
+-slides (down a stage, RPM probably lower to 312)
+-elbow (this time at the end of the slides, actuating an arm of static length (probably a few inches longer than single slide stage))
+-wrist (at the end of the elbow, holds flipper and serves same purpose as before)
+-flipper (at the end of wrist, holds claw and flips it around to hold cone properly)
+-claw (at end of flipper, same as previous claw)
+
+With a cycle looking like:
+-claw grabs from behind
+-(after driver selects junction) drivetrain aims, shoulder goes to angle
+-(after driver indicates) slides extend, elbow moves, flipper flips (depending on aim style), wrist goes to high angle
+-(after driver indicates) wrist moves down
+-(after driver indicates) cone drops, slides move down and elbow moves back once slides are close enough (maybe some hardware enhancements so elbow can move back sooner?)
+
+Code notes:
+-drivetrain math should be the exact same
+-arm math changes a bit but is fairly trivial.  still using the same math as before to determine how far and high the arm needs to aim, but there's more to actuate
+	-hardest part is that there are multiple solutions to aim at a single point, vs. previous arm only having one.  choosing a solution should probably be based on what requires the least movement from the slowest part
+-teleop and auto need a better framework, last one was rushed and was impossible to work with
+-need more organization going forward
