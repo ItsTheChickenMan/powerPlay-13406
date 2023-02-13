@@ -1,0 +1,54 @@
+package org.firstinspires.ftc.teamcode.lib.abe;
+
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+
+public class AbeConfig {
+	public class Hardware {
+		// drive related hardware not included //
+
+		// arm motors... //
+		public DcMotorEx shoulderMotor;
+		public DcMotorEx elbowMotor;
+		public DcMotorEx slidesMotor;
+
+		// arm servos... //
+		public Servo flipperServo;
+		public Servo wristServo;
+		public Servo clawServo;
+
+		public boolean complete(){
+			// NOTE: I hate this method
+			return this.shoulderMotor != null &&
+							this.elbowMotor != null &&
+							this.slidesMotor != null &&
+							this.flipperServo != null &&
+							this.wristServo != null &&
+							this.clawServo != null
+							;
+		}
+	}
+
+	/**
+	 * @brief Loads hardware from hardwareMap into an AbeConfig.Hardware class
+	 *
+	 * This is where to change the names of imports in hardware.  these should be used in every class and opmode involving abe
+	 *
+	 * @param hardwareMap
+	 * @return
+	 */
+	public AbeConfig.Hardware loadHardware(HardwareMap hardwareMap){
+		AbeConfig.Hardware hardware = new AbeConfig.Hardware();
+
+		hardware.shoulderMotor = hardwareMap.get(DcMotorEx.class, "shoulderMotor");
+		hardware.elbowMotor = hardwareMap.get(DcMotorEx.class, "elbowMotor");
+		hardware.slidesMotor = hardwareMap.get(DcMotorEx.class, "slidesMotor");
+
+		hardware.flipperServo = hardwareMap.get(Servo.class, "flipperServo");
+		hardware.wristServo = hardwareMap.get(Servo.class, "wristServo");
+		hardware.clawServo = hardwareMap.get(Servo.class, "clawServo");
+
+		return hardware;
+	}
+}

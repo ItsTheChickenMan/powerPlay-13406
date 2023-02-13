@@ -40,6 +40,20 @@ public class PositionableServo {
 		return Math.toDegrees(this.maxRange);
 	}
 
+	public double getAngleRadians(){
+		double position = this.servo.getPosition();
+
+		double angle = position * this.maxRange;
+
+		angle -= this.maxRange / 2.;
+
+		return angle;
+	}
+
+	public double getAngleDegrees(){
+		return Math.toDegrees(this.getAngleRadians());
+	}
+
 	/**
 	 * @brief Rotate to a certain angle, in radians (between -range/2 and range/2)
 	 *

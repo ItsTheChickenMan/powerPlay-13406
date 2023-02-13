@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.lib.dance;
 
-import org.firstinspires.ftc.teamcode.lib.abe.AbeBot;
-
 /**
  * @brief Class for storing and managing single dance moves
  */
