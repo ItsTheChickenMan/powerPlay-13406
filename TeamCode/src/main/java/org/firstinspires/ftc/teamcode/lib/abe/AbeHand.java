@@ -68,4 +68,12 @@ public class AbeHand {
 
 		this.flipped = true;
 	}
+
+	public void clamp(){
+		this.clawServo.rotateToDegrees(AbeConstants.CLAW_CLOSED_ANGLE_DEGREES);
+	}
+
+	public void unclamp(){
+		this.clawServo.rotateToDegrees(AbeConstants.CLAW_OPEN_ANGLE_DEGREES);
+	}
 }

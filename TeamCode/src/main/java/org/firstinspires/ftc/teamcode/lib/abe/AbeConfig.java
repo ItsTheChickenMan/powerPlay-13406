@@ -5,7 +5,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 public class AbeConfig {
-	public class Hardware {
+	public static class Hardware {
+		public Hardware(){}
+
 		// drive related hardware not included //
 
 		// arm motors... //
@@ -38,7 +40,7 @@ public class AbeConfig {
 	 * @param hardwareMap
 	 * @return
 	 */
-	public AbeConfig.Hardware loadHardware(HardwareMap hardwareMap){
+	public static AbeConfig.Hardware loadHardware(HardwareMap hardwareMap){
 		AbeConfig.Hardware hardware = new AbeConfig.Hardware();
 
 		hardware.shoulderMotor = hardwareMap.get(DcMotorEx.class, "shoulderMotor");
