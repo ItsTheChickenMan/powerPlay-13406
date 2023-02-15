@@ -1,12 +1,9 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.apache.commons.math3.geometry.Vector;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math3.geometry.euclidean.twod.Line;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
@@ -31,23 +28,22 @@ public class AbeBot {
 		this.drive = new AbeDrive(hardwareMap);
 
 		// load motors
-		PositionableMotor shoulderMotor = new PositionableMotor(hardware.shoulderMotor, AbeConstants.SHOULDER_GEAR_RATIO, AbeConstants.SHOULDER_TPR);
 		PositionableMotor elbowMotor = new PositionableMotor(hardware.elbowMotor, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TPR);
 		PositionableMotor slidesMotor = new PositionableMotor(hardware.slidesMotor, AbeConstants.SLIDES_GEAR_RATIO, AbeConstants.SLIDES_TPR);
 
 		// load servo
 		PositionableServo wristServo = new PositionableServo(hardware.wristServo);
-		PositionableServo flipperServo = new PositionableServo(hardware.flipperServo);
+		PositionableServo clawServo = new PositionableServo(hardware.clawServo);
 
 		// construct slides
 		// NOTE: not using extension factor because it was a band-aid fix for a stupid bug that's since been fixed for real.  plus it could just be factored into the circumference and have the exact same effect
-		LinearSlides slides = new LinearSlides(slidesMotor, AbeConstants.SLIDES_BASE_LENGTH_INCHES, AbeConstants.SLIDES_MAX_LENGTH_INCHES, AbeConstants.SLIDES_SPOOL_CIRCUMFERENCE_INCHES, 1.0);
+		LinearSlides slides = new LinearSlides(slidesMotor, AbeConstants.SLIDES_BASE_LENGTH_INCHES, AbeConstants.SLIDES_BASE_LENGTH_INCHES + AbeConstants.SLIDES_MAX_EXTENSION_INCHES, AbeConstants.SLIDES_SPOOL_CIRCUMFERENCE_INCHES, 1.0);
 
 		// construct hand
-		AbeHand hand = new AbeHand(flipperServo, wristServo);
+		AbeHand hand = new AbeHand(wristServo, clawServo);
 
 		// construct arm
-		this.arm = new AbeArm(shoulderMotor, elbowMotor, slides, hand);
+		this.arm = new AbeArm(elbowMotor, slides, hand);
 	}
 
 	/**
@@ -98,11 +94,10 @@ public class AbeBot {
 	 * @brief update the robot parts specified, and do aim logic if needed
 	 *
 	 * @param doDrive do drive train update
-	 * @param doShoulder move the shoulder
-	 * @param doSlides move the slides
 	 * @param doElbow move the elbow
+	 * @param doSlides move the slides
 	 */
-	public void update(boolean doDrive, boolean doShoulder, boolean doSlides, boolean doElbow){
+	public void update(boolean doDrive, boolean doElbow, boolean doSlides){
 		// update drive train
 		if(doDrive) this.drive.update();
 
@@ -120,13 +115,13 @@ public class AbeBot {
 		}
 
 		// update arm
-		this.arm.update(doShoulder, doSlides, doElbow);
+		this.arm.update(doElbow, doSlides);
 	}
 
 	/**
 	 * @brief update all of the robot parts, do aim logic if needed
 	 */
 	public void update(){
-		this.update(true, true, true, true);
+		this.update(true, true, true);
 	}
 }
