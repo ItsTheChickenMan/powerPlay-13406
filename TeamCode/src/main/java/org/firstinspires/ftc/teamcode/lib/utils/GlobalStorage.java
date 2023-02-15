@@ -35,7 +35,7 @@ public class GlobalStorage {
         GlobalStorage.globalTelemetry = null;
         GlobalStorage.currentPose = new Pose2d();
         GlobalStorage.currentElbowAngleRadians = 0.0;
-        GlobalStorage.currentSlidesExtension = AbeConstants.SLIDE_BASE_LENGTH_INCHES;
+        GlobalStorage.currentSlidesExtension = AbeConstants.SLIDES_BASE_LENGTH_INCHES;
         GlobalStorage.didAuto = false;
         GlobalStorage.autoJunctionOffset = new Vector2D(0, 0);
     }

@@ -204,6 +204,20 @@ public class AbeArm {
 		this.elbowAngle = actualElbowAngle;
 	}
 
+	/**
+	 * @brief Update the arm, moving all parts by default
+	 */
+	public void update(){
+		this.update(true, true, true);
+	}
+
+	/**
+	 * @brief Update the arm and choose which parts are allowed to act as a result of aim changes
+	 *
+	 * @param doShoulder
+	 * @param doSlides
+	 * @param doElbow
+	 */
 	public void update(boolean doShoulder, boolean doSlides, boolean doElbow){
 		// aim shoulder, if told to
 		if(doShoulder){

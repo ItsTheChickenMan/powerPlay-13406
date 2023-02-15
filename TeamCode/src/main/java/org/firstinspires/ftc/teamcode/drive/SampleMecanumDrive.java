@@ -161,10 +161,6 @@ public class SampleMecanumDrive extends MecanumDrive {
     private double startX;
     private double startY;
 
-    public Pose2d getCorrectedPoseEstimate(){
-        return getPoseEstimate();
-    }
-
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
         return new TrajectoryBuilder(startPose, VEL_CONSTRAINT, ACCEL_CONSTRAINT);
     }
@@ -265,28 +261,6 @@ public class SampleMecanumDrive extends MecanumDrive {
         for (DcMotorEx motor : motors) {
             motor.setPIDFCoefficients(runMode, compensatedCoefficients);
         }
-    }
-
-    // NOTE: written by Phoenix, not provided by roadrunner
-    // gets us the powers that would be set by setWeightedDrivePower, but doesn't actually set them
-    public Pose2d getWeightedDrivePower(Pose2d drivePower) {
-        Pose2d vel = drivePower;
-
-        if (Math.abs(drivePower.getX()) + Math.abs(drivePower.getY())
-                + Math.abs(drivePower.getHeading()) > 1) {
-            // re-normalize the powers according to the weights
-            double denom = VX_WEIGHT * Math.abs(drivePower.getX())
-                    + VY_WEIGHT * Math.abs(drivePower.getY())
-                    + OMEGA_WEIGHT * Math.abs(drivePower.getHeading());
-
-            vel = new Pose2d(
-                    VX_WEIGHT * drivePower.getX(),
-                    VY_WEIGHT * drivePower.getY(),
-                    OMEGA_WEIGHT * drivePower.getHeading()
-            ).div(denom);
-        }
-
-        return vel;
     }
 
     public void setWeightedDrivePower(Pose2d drivePower) {
