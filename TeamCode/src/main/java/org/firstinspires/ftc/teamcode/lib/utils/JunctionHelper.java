@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+
 public class JunctionHelper {
 	public static final double FIELD_OFFSET = 0.0;
 	public static final double FIELD_SCALE = 23.5;
@@ -49,11 +53,11 @@ public class JunctionHelper {
 		return JunctionHelper.rawToSnapped(coords[0], coords[1]);
 	}
 
-	public static double[] snappedToRaw(int x, int y){
-		return new double[]{x*JunctionHelper.FIELD_SCALE + JunctionHelper.FIELD_OFFSET, y*JunctionHelper.FIELD_SCALE + JunctionHelper.FIELD_OFFSET};
+	public static Vector2d snappedToRaw(int x, int y){
+		return new Vector2d(x*FIELD_SCALE + FIELD_OFFSET, y*FIELD_SCALE+FIELD_OFFSET);
 	}
 
-	public static double[] snappedToRaw(int[] coords){
+	public static Vector2d snappedToRaw(int[] coords){
 		return JunctionHelper.snappedToRaw(coords[0], coords[1]);
 	}
 
@@ -66,20 +70,30 @@ public class JunctionHelper {
 		return JunctionHelper.getJunctionLevel(snapped[0], snapped[1]);
 	}
 
+	public static int getJunctionIndex(int x, int y){
+		if((x % 2) == 1 && (y % 2) == 1){
+			return 0;
+		} else if( ( (y == 2) || (y == 4) ) && ( (x == 2) || (x == 4) ) ){
+			return 2;
+		} else if( ( y == 3 && (x == 2 || x == 4) ) || (x == 3 && (y == 2 || y == 4) ) ){
+			return 3;
+		} else if( ( (y == 1 || y == 5) && (x == 2 || x == 4) ) || ( (y == 2 || y == 4) && (x == 1 || x == 5) ) ){
+			return 1;
+		} else {
+			return -1;
+		}
+	}
+
 	/**
 	 * @brief Takes coordinates in multiples of FIELD_SCALE (essentially, tile corner coordinates) and returns the junction level, if applicable
 	 */
 	public static JunctionHelper.Level getJunctionLevel(int x, int y){
-		if((x % 2) == 1 && (y % 2) == 1){
-			return JunctionHelper.Level.GROUND;
-		} else if( ( (y == 2) || (y == 4) ) && ( (x == 2) || (x == 4) ) ){
-			return JunctionHelper.Level.MEDIUM;
-		} else if( ( y == 3 && (x == 2 || x == 4) ) || (x == 3 && (y == 2 || y == 4) ) ){
-			return JunctionHelper.Level.HIGH;
-		} else if( ( (y == 1 || y == 5) && (x == 2 || x == 4) ) || ( (y == 2 || y == 4) && (x == 1 || x == 5) ) ){
-			return JunctionHelper.Level.LOW;
+		int index = JunctionHelper.getJunctionIndex(x, y);
+
+		if(index != -1){
+			return JunctionHelper.JUNCTION_LEVELS[index];
 		} else {
-			return JunctionHelper.Level.NONE;
+			return Level.NONE;
 		}
 	}
 

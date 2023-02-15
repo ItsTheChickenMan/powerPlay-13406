@@ -95,11 +95,16 @@ public class AbeBot {
 	}
 
 	/**
-	 * @brief update the robot parts, and do aim logic if needed
+	 * @brief update the robot parts specified, and do aim logic if needed
+	 *
+	 * @param doDrive do drive train update
+	 * @param doShoulder move the shoulder
+	 * @param doSlides move the slides
+	 * @param doElbow move the elbow
 	 */
-	public void update(){
+	public void update(boolean doDrive, boolean doShoulder, boolean doSlides, boolean doElbow){
 		// update drive train
-		this.drive.update();
+		if(doDrive) this.drive.update();
 
 		// do aim logic
 		if(this.isAiming()){
@@ -115,6 +120,13 @@ public class AbeBot {
 		}
 
 		// update arm
-		this.arm.update();
+		this.arm.update(doShoulder, doSlides, doElbow);
+	}
+
+	/**
+	 * @brief update all of the robot parts, do aim logic if needed
+	 */
+	public void update(){
+		this.update(true, true, true, true);
 	}
 }

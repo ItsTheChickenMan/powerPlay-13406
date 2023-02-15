@@ -11,6 +11,9 @@ import com.acmerobotics.dashboard.config.Config;
 // make configurable from dashboard
 @Config
 public class AbeConstants {
+	// general... //
+	public static double[] JUNCTION_HEIGHT_OFFSETS_INCHES = new double[]{6.0, 2.0, 0.0, 0.0}; // ground, low, medium, high
+
 	// general arm related... //
 	public static double ARM_X_OFFSET_INCHES = -5; // rr coords
 	public static double ARM_Y_OFFSET_INCHES = -2.1;

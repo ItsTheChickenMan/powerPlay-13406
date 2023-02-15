@@ -129,6 +129,41 @@ public class AbeArm {
 	private double getTheoreticalElbowAngle(double a){
 		return this.shoulderAngle + a;
 	}
+
+	/**
+	 * @brief manually set the shoulder angle to some value in radians
+	 */
+	public void setShoulderAngleRadians(double shoulderAngle){
+		this.shoulderAngle = shoulderAngle;
+	}
+
+	/**
+	 * @brief manually set the shoulder angle to some value in degrees
+	 */
+	public void setShoulderAngleDegrees(double shoulderAngle){
+		this.setShoulderAngleRadians(Math.toRadians(shoulderAngle));
+	}
+
+	/**
+	 * @brief manually set slides length to some value in inches
+	 */
+	public void setSlidesLengthInches(double slidesLength){
+		this.slidesLength = slidesLength;
+	}
+
+	/**
+	 * @brief
+	 *
+	 * @param elbowAngle
+	 */
+	public void setElbowAngleRadians(double elbowAngle){
+		this.elbowAngle = elbowAngle;
+	}
+
+	public void setElbowAngleDegrees(double elbowAngle){
+		this.setElbowAngleRadians(Math.toRadians(elbowAngle));
+	}
+
 	/**
 	 * @brief Calculate the slides length required to aim at a point (x, y) in arm space with an arbitrary elbow angle of a
 	 *
