@@ -26,16 +26,9 @@ public class LocalizationTest extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-        drive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
         waitForStart();
 
-        ElapsedTime timer = new ElapsedTime();
-
-        timer.reset();
-
-        int loops = 0;
-        while (!gamepad1.a && !isStopRequested()) {
+        while (!isStopRequested()) {
             Pose2d poseEstimate = drive.getPoseEstimate();
 
             Vector2d driveVector = new Vector2d(-gamepad1.left_stick_y, -gamepad1.left_stick_x);
@@ -52,18 +45,9 @@ public class LocalizationTest extends LinearOpMode {
 
             drive.update();
 
-            loops++;
-        }
-
-        double duration = timer.seconds();
-
-        while(!isStopRequested()){
-            Pose2d poseEstimate = drive.getPoseEstimate();
-
-            telemetry.addData("loop time", duration / loops);
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
-            telemetry.addData("heading", poseEstimate.getHeading());
+            telemetry.addData("heading", Math.toDegrees(poseEstimate.getHeading()));
             telemetry.update();
         }
     }

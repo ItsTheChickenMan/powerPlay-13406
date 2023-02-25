@@ -1,25 +1,24 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.acmerobotics.roadrunner.control.PIDFController;
-import com.acmerobotics.roadrunner.drive.Drive;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
-
-import java.util.Vector;
-import java.util.regex.PatternSyntaxException;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 
 public class AbeDrive {
 	public enum AimMode {
 		NONE,
-		POINT
+		POINT,
+		ANGLE
 	}
 
 	// roadrunner drive
 	private SampleMecanumDrive roadrunnerDrive;
+	private Vector2d poseOffset; // repeatedly calling setPoseEstimate seems to break roadrunner, so we use this instead
 
 	// drive details... //
 	private Pose2d desiredMovement;
@@ -29,16 +28,48 @@ public class AbeDrive {
 	private AimMode currentAimMode;
 	private Vector2d aimPoint;
 
-	public AbeDrive(HardwareMap hardwareMap){
-		this.roadrunnerDrive = new SampleMecanumDrive(hardwareMap);
-		this.headingController = new PIDFController(SampleMecanumDrive.HEADING_PID);
+	// steady state
+	private double steadyStateMaximumErrorRadians;
+	private double steadyStateMaximumDerivativeRadians;
+
+	public AbeDrive(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
+		this.roadrunnerDrive = new SampleMecanumDrive(hardwareMap, localizationType);
+		this.headingController = new PIDFController(AbeConstants.AIM_HEADING_PID);
+
+		this.headingController.setInputBounds(-Math.PI, Math.PI);
+
+		this.poseOffset = new Vector2d(0, 0);
+		this.desiredMovement = new Pose2d(0, 0, 0);
+		this.currentAimMode = AimMode.NONE;
+		this.aimPoint = null;
 	}
 
 	/**
-	 * @return roadrunner drive pose estimate
+	 * @return roadrunner drive pose estimate, corrected using the pose offset
 	 */
 	public Pose2d getPoseEstimate(){
-		return this.roadrunnerDrive.getPoseEstimate();
+		Pose2d corrected = new Pose2d(this.roadrunnerDrive.getPoseEstimate().vec().plus(this.poseOffset), this.roadrunnerDrive.getPoseEstimate().getHeading());
+
+		return corrected;
+	}
+
+	/**
+	 * @brief sets the roadrunner pose estimate to some value and resets the pose offset
+	 *
+	 * @param pose
+	 */
+	public void setPoseEstimate(Pose2d pose){
+		this.roadrunnerDrive.setPoseEstimate(pose);
+
+		this.setPoseOffset(new Vector2d(0, 0));
+	}
+
+	public void setPoseOffset(Vector2d offset){
+		this.poseOffset.copy(offset.getX(), offset.getY());
+	}
+
+	public void addToPoseOffset(Vector2d offset){
+		this.poseOffset = this.poseOffset.plus(offset);
 	}
 
 	/**
@@ -47,14 +78,36 @@ public class AbeDrive {
 	 * @param offset point relative to the robot's center
 	 */
 	public double calculateAimAngle(Vector2d offset){
-		double angle = Math.atan2(-offset.getY(), offset.getX()) - Math.asin(-AbeConstants.ARM_Y_OFFSET_INCHES / offset.norm());
-
-		return angle;
+		return Math.atan2(-offset.getY(), offset.getX()) - Math.asin(-AbeConstants.ARM_Z_OFFSET_INCHES / offset.norm());
 	}
 
-	public void aimAt(double x, double y){
+	/**
+	 * @brief instruct the drive train to aim at a particular point, relative to the bottom right corner of the field
+	 *
+	 * @param x
+	 * @param y
+	 */
+	public void aimAtPoint(double x, double y){
 		this.aimPoint = new Vector2d(x, y);
 		this.currentAimMode = AimMode.POINT;
+	}
+
+	/**
+	 * @brief instruct the drive train to hold a particular angle
+	 *
+	 * @param theta
+	 */
+	public void aimAtAngleRadians(double theta){
+		this.aimPoint = new Vector2d(theta, theta);
+		this.currentAimMode = AimMode.ANGLE;
+	}
+
+	public void clearAim(){
+		this.currentAimMode = AimMode.NONE;
+	}
+
+	public boolean isAiming(){
+		return this.aimPoint != null;
 	}
 
 	/**
@@ -77,13 +130,11 @@ public class AbeDrive {
 		// calculate actual desired movement
 		Vector2d driveDirection = this.desiredMovement.vec().rotated(-poseEstimate.getHeading());
 
-		Pose2d driveMovement = new Pose2d(driveDirection, this.desiredMovement.getHeading());
-
 		// update movement for aim mode
 		switch(this.currentAimMode){
 			case POINT: {
 				// break if point is null
-				if(this.aimPoint != null) break;
+				if(!this.isAiming()) break;
 
 				// calculate angle to point
 				double theta = this.calculateAimAngle(this.aimPoint);
@@ -91,14 +142,35 @@ public class AbeDrive {
 				// update pidf controller
 				headingController.setTargetPosition(theta);
 
-				// calculate power
-				// TODO: add in feedforward?
-				double headingInput = (headingController.update(poseEstimate.getHeading()) * DriveConstants.kV/* + thetaFF */) * DriveConstants.TRACK_WIDTH;
+				break;
+			}
 
-				// set heading input
-				driveMovement = new Pose2d(driveDirection, headingInput);
+			case ANGLE: {
+				// break if angle is null
+				// (uses the first component of aimPoint)
+				if(!this.isAiming()) break;
+
+				// get angle
+				double theta = this.aimPoint.getX();
+
+				// update pidf controller
+				headingController.setTargetPosition(theta);
+
+				break;
 			}
 		}
+
+		// calculate heading input
+		double headingInput = this.desiredMovement.getHeading();
+
+		if(this.currentAimMode != AimMode.NONE){
+			// calculate power
+			// TODO: add in feedforward?
+			headingInput = (headingController.update(poseEstimate.getHeading()) * DriveConstants.kV/* + thetaFF */) * DriveConstants.TRACK_WIDTH;
+		}
+
+		// calculate drive movement
+		Pose2d driveMovement = new Pose2d(driveDirection, headingInput);
 
 		// set weighted drive powers
 		roadrunnerDrive.setWeightedDrivePower(driveMovement);

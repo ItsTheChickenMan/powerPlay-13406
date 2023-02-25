@@ -4,10 +4,11 @@ package org.firstinspires.ftc.teamcode.lib.motion;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 
 public class PositionableServo {
 	private Servo servo;
+	private double zeroAngleRadians = 0.0;
 	private double maxRange = Math.toRadians(300); // max range (defaults to 300 degrees, which is gobilda default)
 
 	/**
@@ -30,6 +31,28 @@ public class PositionableServo {
 	public PositionableServo(Servo servo, double maxRange){
 		this.servo = servo;
 		this.maxRange = maxRange;
+		this.zeroAngleRadians = 0.0;
+	}
+
+	/**
+	 * @brief Initialize a new positionable servo with a custom max range and zero angle (angle to use as 0 instead of the default)
+	 *
+	 * @param servo
+	 * @param maxRange
+	 * @param zeroAngleRadians angle to use as 0 degrees in place of the default (0 degrees).  ex. if this is 35 degrees, telling the servo to go to 0 degrees will actually make it go to 35 degrees, telling it to go to 10 degrees will actually make it go to 45 degrees, etc.
+	 */
+	public PositionableServo(Servo servo, double maxRange, double zeroAngleRadians){
+		this.servo = servo;
+		this.maxRange = maxRange;
+		this.zeroAngleRadians = zeroAngleRadians;
+	}
+
+	public double getZeroAngleRadians(){
+		return this.zeroAngleRadians;
+	}
+
+	public void setZeroAngleRadians(double angle){
+		this.zeroAngleRadians = angle;
 	}
 
 	public double getMaxRangeRadians(){
@@ -47,6 +70,8 @@ public class PositionableServo {
 
 		angle -= this.maxRange / 2.;
 
+		angle += this.zeroAngleRadians;
+
 		return angle;
 	}
 
@@ -60,6 +85,9 @@ public class PositionableServo {
 	 * @param angle angle in radians to rotate to
 	 */
 	public void rotateToRadians(double angle){
+		// subtract offset
+		angle -= this.zeroAngleRadians;
+
 		// clamp angle
 		angle = Range.clip(angle, -this.maxRange/2., this.maxRange/2.);
 

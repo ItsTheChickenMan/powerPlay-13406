@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -39,6 +40,9 @@ public class AbeConfig {
 
 		hardware.elbowMotor = hardwareMap.get(DcMotorEx.class, "elbowMotor");
 		hardware.slidesMotor = hardwareMap.get(DcMotorEx.class, "slidesMotor");
+
+		hardware.elbowMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+		hardware.slidesMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
 		hardware.wristServo = hardwareMap.get(Servo.class, "wristServo");
 		hardware.clawServo = hardwareMap.get(Servo.class, "clawServo");

@@ -55,11 +55,15 @@ import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kV;
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
+    public enum LocalizationType {
+        MOTOR_ENCODERS,
+        TWO_WHEEL,
+        THREE_WHEEL
+    }
+
     public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(4.5, 0, 0);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(8, 0, 0);
 
-    //public static double LATERAL_MULTIPLIER = 68.45327000659437 / 59.375;
-    //public static double LATERAL_MULTIPLIER = 71 / 68.782;
     public static double LATERAL_MULTIPLIER = 1;
 
     public static double VX_WEIGHT = 1;
@@ -79,7 +83,13 @@ public class SampleMecanumDrive extends MecanumDrive {
     private BNO055IMU imu;
     private VoltageSensor batteryVoltageSensor;
 
-    public SampleMecanumDrive(HardwareMap hardwareMap) {
+    private LocalizationType localizationType;
+
+    public SampleMecanumDrive(HardwareMap hardwareMap){
+        this(hardwareMap, LocalizationType.THREE_WHEEL);
+    }
+
+    public SampleMecanumDrive(HardwareMap hardwareMap, LocalizationType localizationType) {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
 
         follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
@@ -99,7 +109,6 @@ public class SampleMecanumDrive extends MecanumDrive {
         parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
         imu.initialize(parameters);
 
-        // TODO: If the hub containing the IMU you are using is mounted so that the "REV" logo does
         // not face up, remap the IMU axes so that the z-axis points upward (normal to the floor.)
         //
         //             | +Z axis
@@ -144,22 +153,27 @@ public class SampleMecanumDrive extends MecanumDrive {
             setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, MOTOR_VELO_PID);
         }
 
-        // TODO: reverse any motors using DcMotor.setDirection()
         this.leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
         this.leftRear.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // TODO: if desired, use setLocalizer() to change the localization method
-        // for instance, setLocalizer(new ThreeTrackingWheelLocalizer(...));
-        setLocalizer(new TwoWheelTrackingLocalizer(hardwareMap, this));
-        this.usingEncoderWheels = true;
+        setLocalizationType(localizationType);
+
+        if(getLocalizationType() == LocalizationType.TWO_WHEEL) {
+            setLocalizer(new TwoWheelTrackingLocalizer(hardwareMap, this));
+        } else if(getLocalizationType() == LocalizationType.THREE_WHEEL) {
+            setLocalizer(new StandardTrackingWheelLocalizer(hardwareMap));
+        }
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(follower, HEADING_PID);
     }
 
-    private boolean usingEncoderWheels;
+    public LocalizationType getLocalizationType(){
+        return this.localizationType;
+    }
 
-    private double startX;
-    private double startY;
+    private void setLocalizationType(LocalizationType localizationType){
+        this.localizationType = localizationType;
+    }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose) {
         return new TrajectoryBuilder(startPose, VEL_CONSTRAINT, ACCEL_CONSTRAINT);

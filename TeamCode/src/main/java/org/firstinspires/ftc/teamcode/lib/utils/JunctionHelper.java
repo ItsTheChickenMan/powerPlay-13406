@@ -4,6 +4,8 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
+import java.util.Arrays;
+
 public class JunctionHelper {
 	public static final double FIELD_OFFSET = 0.0;
 	public static final double FIELD_SCALE = 23.5;
@@ -11,7 +13,7 @@ public class JunctionHelper {
 	public static final double FIELD_LENGTH = 141;
 
 	public static final double NONE_JUNCTION_HEIGHT_INCHES = -1.0;
-	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 0.56;
+	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 3.5;
 	public static final double LOW_JUNCTION_HEIGHT_INCHES = 13.5;
 	public static final double MEDIUM_JUNCTION_HEIGHT_INCHES = 23.5;
 	public static final double HIGH_JUNCTION_HEIGHT_INCHES = 33.5;
@@ -84,6 +86,10 @@ public class JunctionHelper {
 		}
 	}
 
+	public static int getJunctionIndex(JunctionHelper.Level level){
+		return Arrays.asList(JUNCTION_LEVELS).indexOf(level);
+	}
+
 	/**
 	 * @brief Takes coordinates in multiples of FIELD_SCALE (essentially, tile corner coordinates) and returns the junction level, if applicable
 	 */
@@ -95,6 +101,13 @@ public class JunctionHelper {
 		} else {
 			return Level.NONE;
 		}
+	}
+
+	public static JunctionHelper.Level getJunctionLevelFromIndex(int index){
+		// return none if outside of bounds
+		if(index < 0 || index >= JunctionHelper.JUNCTION_LEVELS.length) return Level.NONE;
+
+		return JunctionHelper.JUNCTION_LEVELS[index];
 	}
 
 	public static double getJunctionHeightFromRaw(double x, double y){
@@ -141,5 +154,14 @@ public class JunctionHelper {
 		}
 
 		return Level.NONE;
+	}
+
+	/**
+	 * @param x
+	 * @param y
+	 * @return true if the coordinates are valid coordinates of a junction on the field, false if otherwise
+	 */
+	public static boolean validateJunctionCoordinates(int x, int y){
+		return x > 0 && x < 6 && y > 0 && y < 6;
 	}
 }

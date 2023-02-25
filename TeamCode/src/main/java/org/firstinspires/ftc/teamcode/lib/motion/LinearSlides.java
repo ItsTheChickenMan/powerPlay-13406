@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 public class LinearSlides {
 	private PositionableMotor driveMotor;
 
-	private double spoolRadius;
 	private double spoolCircumference;
 	private double retractedLength;
 	private double maxLength;
@@ -41,6 +40,10 @@ public class LinearSlides {
 
 	public static double inchesToRotations(double inches, double spoolCircumference){
 		return inches / spoolCircumference;
+	}
+
+	public boolean isBusy(){
+		return this.driveMotor.isBusy();
 	}
 
 	public double getBaseExtension(){

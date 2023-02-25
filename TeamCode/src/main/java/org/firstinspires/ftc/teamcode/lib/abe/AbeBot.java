@@ -4,6 +4,7 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableServo;
@@ -20,20 +21,20 @@ public class AbeBot {
 	// aim details...//
 	private Vector3D aimAtPoint; // generally we use roadrunner vectors, but there's no Vector3d for roadrunner
 
-	public AbeBot(HardwareMap hardwareMap){
+	public AbeBot(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
 		// get hardware
 		AbeConfig.Hardware hardware = AbeConfig.loadHardware(hardwareMap);
 
 		// construct drive
-		this.drive = new AbeDrive(hardwareMap);
+		this.drive = new AbeDrive(hardwareMap, localizationType);
 
 		// load motors
-		PositionableMotor elbowMotor = new PositionableMotor(hardware.elbowMotor, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TPR);
+		PositionableMotor elbowMotor = new PositionableMotor(hardware.elbowMotor, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TPR, AbeConstants.ELBOW_LOWER_LIMIT_RADIANS, AbeConstants.ELBOW_UPPER_LIMIT_RADIANS);
 		PositionableMotor slidesMotor = new PositionableMotor(hardware.slidesMotor, AbeConstants.SLIDES_GEAR_RATIO, AbeConstants.SLIDES_TPR);
 
 		// load servo
-		PositionableServo wristServo = new PositionableServo(hardware.wristServo);
-		PositionableServo clawServo = new PositionableServo(hardware.clawServo);
+		PositionableServo wristServo = new PositionableServo(hardware.wristServo, Math.toRadians(AbeConstants.WRIST_MAX_RANGE_DEGREES), Math.toRadians(AbeConstants.WRIST_ZERO_ANGLE_DEGREES));
+		PositionableServo clawServo = new PositionableServo(hardware.clawServo, Math.toRadians(AbeConstants.CLAW_MAX_RANGE_DEGREES), Math.toRadians(AbeConstants.CLAW_ZERO_ANGLE_DEGREES));
 
 		// construct slides
 		// NOTE: not using extension factor because it was a band-aid fix for a stupid bug that's since been fixed for real.  plus it could just be factored into the circumference and have the exact same effect
@@ -43,7 +44,11 @@ public class AbeBot {
 		AbeHand hand = new AbeHand(wristServo, clawServo);
 
 		// construct arm
-		this.arm = new AbeArm(elbowMotor, slides, hand);
+		this.arm = new AbeArm(elbowMotor, slides, hand, AbeConstants.ARM_TUNING_POINTS);
+	}
+
+	public boolean isSteady(){
+		return false;
 	}
 
 	/**
@@ -58,6 +63,9 @@ public class AbeBot {
 	public void aimAt(double x, double y, double z){
 		// save point
 		this.aimAtPoint = new Vector3D(x, y, z);
+
+		// instruct drive to aim (only needs to be told once)
+		this.drive.aimAtPoint(this.aimAtPoint.getX(), this.aimAtPoint.getZ());
 	}
 
 	/**
@@ -65,6 +73,9 @@ public class AbeBot {
 	 */
 	public void clearAim(){
 		this.aimAtPoint = null;
+
+		// clear drive aim
+		this.drive.clearAim();
 	}
 
 	/**
@@ -99,7 +110,9 @@ public class AbeBot {
 	 */
 	public void update(boolean doDrive, boolean doElbow, boolean doSlides){
 		// update drive train
-		if(doDrive) this.drive.update();
+		if(doDrive){
+			this.drive.update();
+		}
 
 		// do aim logic
 		if(this.isAiming()){
