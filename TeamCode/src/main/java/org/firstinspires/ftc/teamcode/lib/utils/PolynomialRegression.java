@@ -114,7 +114,8 @@ public class PolynomialRegression implements Comparable<PolynomialRegression> {
 	 */
 	public double beta(int j) {
 		// to make -0.0 print as 0.0
-		if (Math.abs(beta.get(j, 0)) < 1E-4) return 0.0;
+		// Phoenix Note: the person(s?) who made this class clearly did not expect anyone to try to do anything with small numbers.  this turned a very small coefficient into 0 and completely screwed up sag correction
+		//if (Math.abs(beta.get(j, 0)) < 1E-4) return 0.0;
 		return beta.get(j, 0);
 	}
 
@@ -154,6 +155,10 @@ public class PolynomialRegression implements Comparable<PolynomialRegression> {
 		return y;
 	}
 
+	public String toString(){
+		return toString(2);
+	}
+
 	/**
 	 * Returns a string representation of the polynomial regression model.
 	 *
@@ -161,19 +166,21 @@ public class PolynomialRegression implements Comparable<PolynomialRegression> {
 	 *         including the best-fit polynomial and the coefficient of
 	 *         determination <em>R</em><sup>2</sup>
 	 */
-	public String toString() {
+	public String toString(int precision) {
+		precision = Math.abs(precision);
+
 		StringBuilder s = new StringBuilder();
 		int j = degree;
 
 		// ignoring leading zero coefficients
-		while (j >= 0 && Math.abs(beta(j)) < 1E-5)
+		/*while (j >= 0 && Math.abs(beta(j)) < 1E-5)
 			j--;
-
+*/
 		// create remaining terms
 		while (j >= 0) {
-			if      (j == 0) s.append(String.format("%.2f ", beta(j)));
-			else if (j == 1) s.append(String.format("%.2f %s + ", beta(j), variableName));
-			else             s.append(String.format("%.2f %s^%d + ", beta(j), variableName, j));
+			if      (j == 0) s.append(String.format("%." + precision + "f ", beta(j)));
+			else if (j == 1) s.append(String.format("%." + precision + "f %s + ", beta(j), variableName));
+			else             s.append(String.format("%." + precision + "f %s^%d + ", beta(j), variableName, j));
 			j--;
 		}
 		s = s.append("  (R^2 = " + String.format("%.3f", R2()) + ")");
