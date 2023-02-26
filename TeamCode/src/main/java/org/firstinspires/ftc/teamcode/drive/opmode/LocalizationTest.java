@@ -21,10 +21,11 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 @TeleOp(group = "drive")
 public class LocalizationTest extends LinearOpMode {
     public static double SPEED = 1.0;
+    public static double LOCALIZATION_MODE = 1.0;
 
     @Override
     public void runOpMode() throws InterruptedException {
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap, LOCALIZATION_MODE > 0.0 ? SampleMecanumDrive.LocalizationType.THREE_WHEEL : SampleMecanumDrive.LocalizationType.TWO_WHEEL);
 
         waitForStart();
 

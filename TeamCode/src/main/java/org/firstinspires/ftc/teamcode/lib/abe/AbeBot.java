@@ -48,7 +48,7 @@ public class AbeBot {
 	}
 
 	public boolean isSteady(){
-		return false;
+		return this.arm.isSteady() && this.drive.isSteady();
 	}
 
 	/**

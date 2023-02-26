@@ -13,8 +13,11 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 // make configurable from dashboard
 @Config
 public class AbeConstants {
+	// general... //
+
 	// drive related... //
-	public static PIDCoefficients AIM_HEADING_PID = new PIDCoefficients(8, 0, 0.2);
+	public static PIDCoefficients AIM_HEADING_PID = new PIDCoefficients(5.5, 0, 0.2);
+	public static double MAX_ROTATION_POWER = 0.6;
 
 	// general arm related... //
 	public static double ARM_X_OFFSET_INCHES = -5; // offset along robot's forward axis
@@ -58,9 +61,11 @@ public class AbeConstants {
 	public static double WRIST_MAX_RANGE_DEGREES = 245;
 	public static double WRIST_ZERO_ANGLE_DEGREES = -60.0;
 	public static double WRIST_OFFSET_INCHES = 5.8;
-	public static double WRIST_DEFAULT_ANGLE_DEGREES = -35.0;
-	public static double WRIST_UP_ANGLE_DEGREES = 35.0;
+	public static double WRIST_DEFAULT_ANGLE_DEGREES = -80.0;
+	public static double WRIST_UP_ANGLE_DEGREES = 45.0;
+	public static double WRIST_HIGH_ANGLE_DEGREES = 55;
 	public static double WRIST_DROP_ANGLE_DEGREES = 0.0;
+	public static double WRIST_GRAB_ANGLE_DEGREES = -10.0;
 
 	// claw related... //
 	public static double CLAW_MAX_RANGE_DEGREES = 300;

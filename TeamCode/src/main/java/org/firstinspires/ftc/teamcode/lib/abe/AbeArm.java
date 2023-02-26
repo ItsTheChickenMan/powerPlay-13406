@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.lib.motion.LinearSlides;
 import org.firstinspires.ftc.teamcode.lib.motion.PositionableMotor;
+import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.MathUtils;
 import org.firstinspires.ftc.teamcode.lib.utils.PolynomialRegression;
@@ -39,7 +40,7 @@ public class AbeArm {
 	private double elbowSteadyStateMaximumDerivativeRadians = Math.toRadians(2.0);
 
 	private double slidesSteadyStateMaximumErrorInches = 0.75;
-	private double slidesSteadyStateMaximumDerivativeInches = 1.0;
+	private double slidesSteadyStateMaximumDerivativeInches = 0.75;
 
 	private double elbowLastErrorRadians = 0.0;
 	private double elbowLastDerivativeRadians = 0.0;
@@ -81,6 +82,14 @@ public class AbeArm {
 		}
 
 		this.deltaTimer = new ElapsedTime();
+	}
+
+	public String getSagCorrectionEquation(JunctionHelper.Level level){
+		PolynomialRegression r = this.sagCorrectionRegressions[JunctionHelper.getJunctionIndex(level)];
+
+		if(r == null) return "none";
+
+		return r.toString(10);
 	}
 
 	public double getSagCorrectionR2(JunctionHelper.Level level){
@@ -140,6 +149,9 @@ public class AbeArm {
 	 * @return true if elbow is steady (within a certain error and speed threshold)
 	 */
 	public boolean isElbowSteady(double maxErrorRadians, double maxDerivativeRadians){
+		GlobalStorage.globalTelemetry.addData("elbow last error", Math.toDegrees(this.elbowLastErrorRadians));
+		GlobalStorage.globalTelemetry.addData("elbow last derivative", Math.toDegrees(this.elbowLastDerivativeRadians));
+
 		return (this.elbowLastErrorRadians <= maxErrorRadians) && (this.elbowLastDerivativeRadians <= maxDerivativeRadians);
 	}
 
@@ -265,6 +277,34 @@ public class AbeArm {
 	}
 
 	/**
+	 * @return the intended (not current) angle of the elbow in radians
+	 */
+	public double getDesiredElbowAngleRadians(){
+		return this.elbowAngleRadians;
+	}
+
+	/**
+	 * @return the intended (not current) angle of the elbow in degrees
+	 */
+	public double getDesiredElbowAngleDegrees(){
+		return Math.toDegrees(this.elbowAngleRadians);
+	}
+
+	/**
+	 * @return how far off the current elbow angle is from the desired elbow angle, in radians.  positive error means over, negative error means under
+	 */
+	public double getElbowAngleErrorRadians(){
+		return getElbowAngleRadians() - getDesiredElbowAngleRadians();
+	}
+
+	/**
+	 * @return how far off the current elbow angle is from the desired elbow angle, in degrees.  positive error means over, negative error means under
+	 */
+	public double getElbowAngleErrorDegrees(){
+		return Math.toDegrees(getElbowAngleErrorRadians());
+	}
+
+	/**
 	 * @brief manually set the elbow angle to some value in radians
 	 */
 	public void setElbowAngleRadians(double elbowAngle){
@@ -301,6 +341,20 @@ public class AbeArm {
 	 */
 	public double getSlidesLengthInches(){
 		return this.slides.getExtension();
+	}
+
+	/**
+	 * @return the intended (not current) extension of the slides, in inches
+	 */
+	public double getDesiredSlidesLengthInches(){
+		return this.slidesLengthInches;
+	}
+
+	/**
+	 * @return how far off the current slides length is from the desired slides length, in inches.  positive error means over, negative error means under
+	 */
+	public double getSlidesLengthErrorInches(){
+		return getSlidesLengthInches() - getDesiredSlidesLengthInches();
 	}
 
 	/**
@@ -438,6 +492,9 @@ public class AbeArm {
 		// save values
 		this.elbowAngleRadians = elbowAngle;
 		this.slidesLengthInches = slidesLength;
+
+		//GlobalStorage.globalTelemetry.addData("arm x", x);
+		//GlobalStorage.globalTelemetry.addData("arm y", y);
 	}
 
 	public void updateHand(){
@@ -452,12 +509,12 @@ public class AbeArm {
 		deltaTimer.reset();
 
 		// steady state calculation
-		double elbowError = this.getElbowAngleRadians() - this.elbowAngleRadians;
+		double elbowError = this.getElbowAngleErrorRadians();
 		double elbowDerivative = (elbowError - this.elbowLastErrorRadians) / delta;
 		this.elbowLastErrorRadians = elbowError;
 		this.elbowLastDerivativeRadians = elbowDerivative;
 
-		double slidesError = this.getSlidesLengthInches() - this.slidesLengthInches;
+		double slidesError = this.getSlidesLengthErrorInches();
 		double slidesDerivative = (slidesError - this.slidesLastErrorInches) / delta;
 		this.slidesLastErrorInches = slidesError;
 		this.slidesLastDerivativeInches = slidesDerivative;

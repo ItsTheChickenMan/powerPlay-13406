@@ -114,7 +114,7 @@ public class PolynomialRegression implements Comparable<PolynomialRegression> {
 	 */
 	public double beta(int j) {
 		// to make -0.0 print as 0.0
-		// Phoenix Note: the person(s?) who made this class clearly did not expect anyone to try to do anything with small numbers.  this turned a very small coefficient into 0 and completely screwed up sag correction
+		// Phoenix Note: the person(s?) who made this class clearly did not expect anyone to try to do anything with small numbers.  this turned a very small coefficient into 0 and completely screwed up sag correction.  plus, why would this not be in the toString method?
 		//if (Math.abs(beta.get(j, 0)) < 1E-4) return 0.0;
 		return beta.get(j, 0);
 	}

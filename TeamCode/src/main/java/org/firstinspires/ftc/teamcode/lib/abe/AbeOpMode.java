@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
@@ -18,11 +20,13 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
  *
  * this class works like LinearOpMode; the opmode class must inherit from this class and implement runOpMode
  */
+@Config
 public abstract class AbeOpMode extends LinearOpMode {
 	// constants
-	public static double[] JUNCTION_HEIGHT_OFFSETS_INCHES = new double[]{6.0, 2.0, 0.0, 0.0}; // ground, low, medium, high
-	public static double BASE_CONE_STACK_HEIGHT = 3.0;
-	public static double CONE_STACK_HEIGHT_INCREASE_RATE = 1.375;
+	public static double[] JUNCTION_HEIGHT_OFFSETS_INCHES = new double[]{6.0, 2.0, -1.5, -1.5}; // ground, low, medium, high
+	public static double BASE_CONE_STACK_HEIGHT = AbeTeleOp.ARM_GRAB_POSITION_INCHES.getY();
+	public static double CONE_STACK_HEIGHT_INCREASE_RATE = 1.5;
+	public static final Vector2d CONE_STACK_RIGHT_POSITION = new Vector2d(58.5, 2.5);
 
 	// global timer
 	private ElapsedTime globalTimer;
@@ -139,12 +143,14 @@ public abstract class AbeOpMode extends LinearOpMode {
 	 * @param x x coordinate, from 1 to 5
 	 * @param y y coordinate, from 1 to 5
 	 */
-	public void aimToJunction(int x, int y){
+	public void aimToJunction(int x, int y, Vector2d offset){
 		// check coordinates
 		if(!JunctionHelper.validateJunctionCoordinates(x, y)) return;
 
 		// calculate junction coordinates
 		Vector2d raw = JunctionHelper.snappedToRaw(x, y);
+
+		raw = raw.plus(offset);
 
 		// calculate junction height
 		double height = JunctionHelper.getJunctionHeight(x, y);
@@ -158,15 +164,23 @@ public abstract class AbeOpMode extends LinearOpMode {
 		this.abe.aimAt(raw.getX(), height, raw.getY());
 	}
 
+	public void aimToJunction(int x, int y){
+		this.aimToJunction(x, y, new Vector2d(0, 0));
+	}
+
 	/**
 	 * @brief Aim to a junction using raw field coordinates.  This will snap the coordinates to the closest junction before aiming.
 	 *
 	 * @param raw raw field coordinates
 	 */
-	public void aimToJunctionRaw(Vector2d raw){
+	public void aimToJunctionRaw(Vector2d raw, Vector2d offset){
 		int[] snapped = JunctionHelper.rawToSnapped(raw.getX(), raw.getY());
 
-		this.aimToJunction(snapped[0], snapped[1]);
+		this.aimToJunction(snapped[0], snapped[1], offset);
+	}
+
+	public void aimToJunctionRaw(Vector2d raw){
+		this.aimToJunctionRaw(raw, new Vector2d(0, 0));
 	}
 
 	/**
@@ -174,12 +188,21 @@ public abstract class AbeOpMode extends LinearOpMode {
 	 * @return the physical height to grab the cone stack at
 	 */
 	public double getStackGrabHeight(int cones){
-		return BASE_CONE_STACK_HEIGHT + CONE_STACK_HEIGHT_INCREASE_RATE*cones;
+		return BASE_CONE_STACK_HEIGHT + CONE_STACK_HEIGHT_INCREASE_RATE*(cones-1);
 	}
 
 	public void updateControllerStates(){
 		gamepadEx1.updateControllerStates();
 		gamepadEx2.updateControllerStates();
+	}
+
+	/**
+	 * @brief get the bot's current state and save appropriate values to GlobalStorage
+	 */
+	public void saveStateToGlobalStorage(){
+		GlobalStorage.currentElbowAngleRadians = this.abe.arm.getElbowAngleRadians();
+		GlobalStorage.currentSlidesExtension = this.abe.arm.getSlidesLengthInches();
+		GlobalStorage.currentPose = this.abe.drive.getPoseEstimate();
 	}
 
 	/**
@@ -196,5 +219,22 @@ public abstract class AbeOpMode extends LinearOpMode {
 
 		// set start point
 		this.setPoseEstimate(GlobalStorage.currentPose);
+	}
+
+	/**
+	 * @param pos
+	 * @return the coordinates of pos if they were mirrored to the other side of the field
+	 */
+	public Vector2d getOppositeCoords(Vector2d pos){
+		return new Vector2d(pos.getX(), JunctionHelper.FIELD_WIDTH - pos.getY());
+	}
+
+	public void correctPoseEstimateWithIMU(){
+		Pose2d corrected = new Pose2d(
+						this.abe.drive.getPoseEstimate().vec(),
+						this.abe.drive.getRawExternalHeading()
+		);
+
+		setPoseEstimate(corrected);
 	}
 }

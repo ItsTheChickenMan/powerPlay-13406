@@ -3,7 +3,10 @@ package org.firstinspires.ftc.teamcode.lib.abe;
 import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
@@ -29,8 +32,13 @@ public class AbeDrive {
 	private Vector2d aimPoint;
 
 	// steady state
-	private double steadyStateMaximumErrorRadians;
-	private double steadyStateMaximumDerivativeRadians;
+	private double lastErrorRadians = 0.0;
+	private double lastDerivativeRadians = 0.0;
+
+	private double steadyStateMaximumErrorRadians= Math.toRadians(3.0);
+	private double steadyStateMaximumDerivativeRadians = Math.toRadians(2.0);
+
+	private ElapsedTime deltaTimer;
 
 	public AbeDrive(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
 		this.roadrunnerDrive = new SampleMecanumDrive(hardwareMap, localizationType);
@@ -42,6 +50,78 @@ public class AbeDrive {
 		this.desiredMovement = new Pose2d(0, 0, 0);
 		this.currentAimMode = AimMode.NONE;
 		this.aimPoint = null;
+
+		this.deltaTimer = new ElapsedTime();
+	}
+
+	/**
+	 * @brief check if drive is steady using custom tolerances
+	 *
+	 * @param maxErrorRadians
+	 * @param maxDerivativeRadians
+	 * @return true if drive is steady (within a certain error and speed threshold)
+	 */
+	public boolean isSteady(double maxErrorRadians, double maxDerivativeRadians){
+		return (this.lastErrorRadians < maxErrorRadians) && (this.lastDerivativeRadians < maxDerivativeRadians);
+	}
+
+	/**
+	 * @brief check if drive is steady using custom tolerances
+	 *
+	 * @return true if drive is steady (within a certain error and speed threshold)
+	 */
+	public boolean isSteady(){
+		GlobalStorage.globalTelemetry.addData("last error radians", this.lastErrorRadians);
+		GlobalStorage.globalTelemetry.addData("last derivative radians", this.lastDerivativeRadians);
+
+		return isSteady(steadyStateMaximumErrorRadians, steadyStateMaximumDerivativeRadians);
+	}
+
+	public void setDefaultSteadyStateMaximumErrorRadians(double radians){
+		this.steadyStateMaximumErrorRadians = radians;
+	}
+
+	public void setDefaultSteadyStateMaximumDerivativeRadians(double radians){
+		this.steadyStateMaximumDerivativeRadians = radians;
+	}
+	/**
+	 * @param startPose
+	 * @return passthrough to rr drive trajectory builder
+	 */
+	public TrajectoryBuilder trajectoryBuilder(Pose2d startPose){
+		return this.roadrunnerDrive.trajectoryBuilder(startPose);
+	}
+
+	/**
+	 * @brief follow a trajectory synchronously, blocking until complete
+	 *
+	 * @param trajectory
+	 */
+	public void followTrajectory(Trajectory trajectory){
+		this.roadrunnerDrive.followTrajectory(trajectory);
+	}
+
+	/**
+	 * @return see SampleMecanumDrive getRawExternalHeading
+	 */
+	public double getRawExternalHeading(){
+		return this.roadrunnerDrive.getRawExternalHeading();
+	}
+
+	/**
+	 * @brief follow a trajectory asynchronously, non-blocking but need to update drive
+	 *
+	 * @param trajectory
+	 */
+	public void followTrajectoryAsync(Trajectory trajectory){
+		this.roadrunnerDrive.followTrajectoryAsync(trajectory);
+	}
+
+	/**
+	 * @return the direction that the drive is facing as a vector
+	 */
+	public Vector2d getForwardVector(){
+		return new Vector2d(1, 0).rotated(this.getPoseEstimate().getHeading());
 	}
 
 	/**
@@ -78,7 +158,7 @@ public class AbeDrive {
 	 * @param offset point relative to the robot's center
 	 */
 	public double calculateAimAngle(Vector2d offset){
-		return Math.atan2(-offset.getY(), offset.getX()) - Math.asin(-AbeConstants.ARM_Z_OFFSET_INCHES / offset.norm());
+		return -(Math.atan2(-offset.getY(), offset.getX()) - Math.asin(-AbeConstants.ARM_Z_OFFSET_INCHES / offset.norm()));
 	}
 
 	/**
@@ -110,6 +190,29 @@ public class AbeDrive {
 		return this.aimPoint != null;
 	}
 
+	public double getAimErrorRadians(){
+		if(currentAimMode != AimMode.NONE){
+			return this.headingController.getLastError();
+		} else {
+			return 0.0;
+		}
+	}
+
+	public double getAimErrorDegrees(){
+		return Math.toDegrees(getAimErrorRadians());
+	}
+
+	public void updateSteadyState(){
+		double dt = this.deltaTimer.seconds();
+		this.deltaTimer.reset();
+
+		double error = this.getAimErrorRadians();
+		double derivative = (error - this.lastErrorRadians) / dt;
+
+		this.lastErrorRadians = error;
+		this.lastDerivativeRadians = derivative;
+	}
+
 	/**
 	 * @brief instruct the drive train to drive using field oriented with these values on the next update
 	 *
@@ -124,11 +227,17 @@ public class AbeDrive {
 	}
 
 	public void update(){
+		update(false);
+	}
+
+	public void update(boolean useThetaFF){
 		// get pose estimate
 		Pose2d poseEstimate = this.roadrunnerDrive.getPoseEstimate();
 
 		// calculate actual desired movement
 		Vector2d driveDirection = this.desiredMovement.vec().rotated(-poseEstimate.getHeading());
+
+		double thetaFF = 0.0;
 
 		// update movement for aim mode
 		switch(this.currentAimMode){
@@ -136,11 +245,22 @@ public class AbeDrive {
 				// break if point is null
 				if(!this.isAiming()) break;
 
-				// calculate angle to point
-				double theta = this.calculateAimAngle(this.aimPoint);
+				Vector2d offset = this.aimPoint.minus(this.getPoseEstimate().vec());
+				double distance = offset.norm();
 
-				// update pidf controller
-				headingController.setTargetPosition(theta);
+				// distances of 0 screw it up
+				if(distance > 1) {
+					// calculate angle to point
+					double theta = this.calculateAimAngle(this.aimPoint.minus(this.getPoseEstimate().vec()));
+
+					Pose2d velocity = this.roadrunnerDrive.getPoseVelocity();
+
+					// stole this from noah bres
+					if(velocity != null && useThetaFF) thetaFF = -velocity.vec().rotated(-Math.PI / 2).dot(offset) / (distance * distance);
+
+					// update pidf controller
+					headingController.setTargetPosition(theta);
+				}
 
 				break;
 			}
@@ -166,8 +286,11 @@ public class AbeDrive {
 		if(this.currentAimMode != AimMode.NONE){
 			// calculate power
 			// TODO: add in feedforward?
-			headingInput = (headingController.update(poseEstimate.getHeading()) * DriveConstants.kV/* + thetaFF */) * DriveConstants.TRACK_WIDTH;
+			headingInput = (headingController.update(poseEstimate.getHeading()) * DriveConstants.kV + thetaFF) * DriveConstants.TRACK_WIDTH;
 		}
+
+		// cap heading input
+		headingInput = Math.min(Math.max(headingInput, -AbeConstants.MAX_ROTATION_POWER), AbeConstants.MAX_ROTATION_POWER);
 
 		// calculate drive movement
 		Pose2d driveMovement = new Pose2d(driveDirection, headingInput);
@@ -178,10 +301,17 @@ public class AbeDrive {
 		// update pidf controller
 		headingController.update(poseEstimate.getHeading());
 
-		// update pose estimate
-		this.roadrunnerDrive.update();
+		// update steady state stuff
+		this.updateSteadyState();
+
+		this.updateRoadrunnerDrive();
 
 		// clear desired movement
 		this.desiredMovement = new Pose2d();
+	}
+
+	public void updateRoadrunnerDrive(){
+		// update drive
+		this.roadrunnerDrive.update();
 	}
 }

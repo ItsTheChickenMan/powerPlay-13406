@@ -19,7 +19,7 @@ public class AbeAutomatic extends AbeTeleOp {
 		GlobalStorage.globalTelemetry = telemetry;
 
 		// use two wheel odometry in teleop because positional error is correctable while heading error is not
-		initialize(hardwareMap, SampleMecanumDrive.LocalizationType.TWO_WHEEL);
+		setup(SampleMecanumDrive.LocalizationType.TWO_WHEEL);
 
 		// load state from global storage
 		this.loadStateFromGlobalStorage();

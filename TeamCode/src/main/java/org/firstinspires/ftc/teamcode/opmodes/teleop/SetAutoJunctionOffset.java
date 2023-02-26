@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.opmodes.teleop;
 
 import android.provider.Settings;
 
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -25,10 +26,10 @@ public class SetAutoJunctionOffset extends LinearOpMode {
 			boolean left = gamepad2.dpad_left;
 			boolean right = gamepad2.dpad_right;
 
-			Vector2D change = new Vector2D(up ? 1 : down ? -1 : 0, left ? 1 : right ? -1 : 0);
+			Vector2d change = new Vector2d(up ? 1 : down ? -1 : 0, left ? 1 : right ? -1 : 0);
 
 			if((up && !upLastFrame) || (down && !downLastFrame) || (left && !leftLastFrame) || (right && !rightLastFrame)){
-				GlobalStorage.autoJunctionOffset = GlobalStorage.autoJunctionOffset.add(change.scalarMultiply(rate));
+				GlobalStorage.autoJunctionOffset = GlobalStorage.autoJunctionOffset.plus(change.times(rate));
 			}
 
 			upLastFrame = up;

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 /**
  * @brief abstracts the very advanced AprilTagDetectionPipeline and related settings into a simple class that's easy to use for our purposes
  */
-public class AprilTagDetector {
+public class SignalSleeveDetector {
 	public static final int INVALID_ID = -1;
 
 	private OpenCvCamera camera;
@@ -30,10 +30,10 @@ public class AprilTagDetector {
 	AprilTagDetection spottedTag;
 
 	public static boolean isIdValid(int id){
-		return id != AprilTagDetector.INVALID_ID;
+		return id != SignalSleeveDetector.INVALID_ID;
 	}
 
-	public AprilTagDetector(OpenCvCamera camera){
+	public SignalSleeveDetector(OpenCvCamera camera){
 		this.camera = camera;
 		this.aprilTagDetectionPipeline = new AprilTagDetectionPipeline(tagsize, fx, fy, cx, cy);
 

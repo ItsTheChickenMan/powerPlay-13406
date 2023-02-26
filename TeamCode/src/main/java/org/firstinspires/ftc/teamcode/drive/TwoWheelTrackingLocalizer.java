@@ -39,9 +39,9 @@ public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
 	public static final int LEFT = 1;
 	public static final int RIGHT = -1;
 
-	public static double X_MULTIPLIER = 1.0;
+	public static double X_MULTIPLIER = StandardTrackingWheelLocalizer.X_MULTIPLIER;
 	//public static double X_MULTIPLIER = 71.0 / 71.493;
-	public static double Y_MULTIPLIER = 1.0;
+	public static double Y_MULTIPLIER = StandardTrackingWheelLocalizer.Y_MULTIPLIER;
 	//public static double Y_MULTIPLIER = 71.0 / 71.339;
 
 	public static double TICKS_PER_REV = StandardTrackingWheelLocalizer.TICKS_PER_REV;

@@ -3,19 +3,23 @@ package org.firstinspires.ftc.teamcode.lib.abe;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
+import org.firstinspires.ftc.teamcode.lib.utils.MathUtils;
 
 public abstract class AbeTeleOp extends AbeOpMode {
 	// constants
 	public static double GRAB_MODE_PICKUP_TIME_SECONDS = 0.25;
 	public static double AIM_MODE_DEPOSIT_TIME_SECONDS = 0.1;
 
-	public static Vector2d ARM_DEFAULT_POSITION_INCHES = new Vector2d(15, 8);
-	public static Vector2d ARM_GRAB_POSITION_INCHES = new Vector2d(19, 2);
+	public static Vector2d ARM_DEFAULT_POSITION_INCHES = new Vector2d(12, 14);
+	public static Vector2d ARM_GRAB_POSITION_INCHES = new Vector2d(16.1, 2.5);
 
 	public static double BASE_POSE_CORRECTION_RATE_INCHES_PER_SECOND = 6.0;
 	public static double POSE_CORRECTION_RATE_MULTIPLIER = 2.5;
 
 	public static double JUNCTION_AIM_DISTANCE_INCHES = 16.0;
+
+	public static double WRIST_RAISE_THRESHOLD_RADIANS = Math.toRadians(45.0);
 
 	// modes
 	public enum ControlMode {
@@ -76,8 +80,8 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 		// load drive controller states
 		double forward = -gamepad1.left_stick_y;
-		double strafe = gamepad1.left_stick_x;
-		double rotate = gamepad1.right_stick_x;
+		double strafe = -gamepad1.left_stick_x;
+		double rotate = -gamepad1.right_stick_x;
 
 		// drive
 		this.abe.drive.driveFieldOriented(forward, strafe, rotate);
@@ -92,23 +96,24 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				boolean stackDown = gamepadEx2.dpad_down_pressed;
 				boolean switchMode = gamepadEx2.a_pressed;
 
-				telemetry.addData("down", down);
-				telemetry.addData("stackUp", stackUp);
-				telemetry.addData("stackDown", stackDown);
-				telemetry.addData("switchMode", switchMode);
+				// angle the wrist slightly down to make grabbing easier
+				this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_GRAB_ANGLE_DEGREES);
 
 				if(!down) {
 					// default to ground mode
 					this.currentGrabMode = GrabMode.GROUND;
 
 					// move to default position
-					this.abe.arm.aimAt(ARM_DEFAULT_POSITION_INCHES.getX(), ARM_DEFAULT_POSITION_INCHES.getY());
+					this.abe.arm.aimAt(ARM_DEFAULT_POSITION_INCHES.getX(), ARM_DEFAULT_POSITION_INCHES.getY() - AbeConstants.ARM_Y_OFFSET_INCHES);
+
+					// wrist down
+					this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DEFAULT_ANGLE_DEGREES);
 				} else {
 					// check grab mode
 					switch (this.currentGrabMode) {
 						case GROUND: {
 							// go to down position
-							this.abe.arm.aimAt(ARM_GRAB_POSITION_INCHES.getX(), ARM_GRAB_POSITION_INCHES.getY());
+							this.abe.arm.aimAt(ARM_GRAB_POSITION_INCHES.getX(), ARM_GRAB_POSITION_INCHES.getY() - AbeConstants.ARM_Y_OFFSET_INCHES);
 
 							// switch condition
 							if(stackUp){
@@ -124,7 +129,7 @@ public abstract class AbeTeleOp extends AbeOpMode {
 							double grabHeight = this.getStackGrabHeight(this.aimStackHeight);
 
 							// aim
-							this.abe.arm.aimAt(ARM_GRAB_POSITION_INCHES.getX(), grabHeight);
+							this.abe.arm.aimAt(ARM_GRAB_POSITION_INCHES.getX(), grabHeight - AbeConstants.ARM_Y_OFFSET_INCHES);
 
 							// adjust stack height
 							if(stackDown){
@@ -146,6 +151,9 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				if(switchMode && !isEventScheduled(this.switchModeSchedule)){
 					// schedule switch
 					this.switchModeSchedule = getScheduledTime(GRAB_MODE_PICKUP_TIME_SECONDS);
+
+					// clamp
+					this.abe.arm.setHandClamped();
 				}
 
 				// switch
@@ -158,9 +166,6 @@ public abstract class AbeTeleOp extends AbeOpMode {
 
 					// setup aim
 					this.setupAimMode();
-
-					// clamp
-					this.abe.arm.setHandClamped();
 				}
 
 				this.abe.update();
@@ -174,20 +179,31 @@ public abstract class AbeTeleOp extends AbeOpMode {
 				boolean slides = gamepad2.left_trigger > 0.05;
 				boolean wristing = gamepad2.right_bumper;
 				boolean drop = gamepad2.a;
+				boolean deselectJunction = gamepad2.x;
 
 				double junctionSelectionX = -gamepad2.left_stick_x;
 				double junctionSelectionY = -gamepad2.left_stick_y;
 
-				double poseCorrectionX = gamepad2.right_stick_x;
-				double poseCorrectionY = gamepad2.right_stick_y;
+				double poseCorrectionX = gamepad2.right_stick_y;
+				double poseCorrectionY = gamepad2.right_stick_x;
 				double correctionSpeed = gamepad2.right_trigger;
 
 				// check chosen junction
 				if(hasChosenJunction()) {
+					boolean raise = false;
+
 					// check slides
 					if(slides){
 						// check pose correction
 						Vector2d poseCorrection = new Vector2d(poseCorrectionX, poseCorrectionY);
+
+						if(poseCorrection.norm() > 0.2){
+							// check if direction that pose correction is pointing and robot's forward are away from each other
+							double poseAngle = poseCorrection.angle();
+							double forwardAngle = this.abe.drive.getPoseEstimate().getHeading();
+
+							raise = MathUtils.approximatelyEqual(poseAngle, forwardAngle, WRIST_RAISE_THRESHOLD_RADIANS);
+						}
 
 						// correction rate
 						double b = BASE_POSE_CORRECTION_RATE_INCHES_PER_SECOND;
@@ -204,6 +220,8 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					// check wrist
 					if(wristing){
 						this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DROP_ANGLE_DEGREES);
+					} else if(raise) {
+						this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_HIGH_ANGLE_DEGREES);
 					} else {
 						this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_UP_ANGLE_DEGREES);
 					}
@@ -215,9 +233,13 @@ public abstract class AbeTeleOp extends AbeOpMode {
 					this.abe.clearAim();
 
 					// aim at default
-					this.abe.arm.aimAt(ARM_DEFAULT_POSITION_INCHES.getX(), ARM_DEFAULT_POSITION_INCHES.getY());
+					this.abe.arm.aimAt(ARM_DEFAULT_POSITION_INCHES.getX(), ARM_DEFAULT_POSITION_INCHES.getY() - AbeConstants.ARM_Y_OFFSET_INCHES);
 
-					this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DEFAULT_ANGLE_DEGREES);
+					this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DROP_ANGLE_DEGREES);
+				}
+
+				if(deselectJunction){
+					this.chosenJunction = null;
 				}
 
 				// look for chosen junction

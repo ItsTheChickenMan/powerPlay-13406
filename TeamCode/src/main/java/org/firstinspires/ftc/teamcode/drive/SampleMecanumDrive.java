@@ -70,6 +70,9 @@ public class SampleMecanumDrive extends MecanumDrive {
     public static double VY_WEIGHT = 1;
     public static double OMEGA_WEIGHT = 1;
 
+    public static double NOMINAL_VOLTAGE = 14;
+    public static double MINIMUM_VOLTAGE = 11.5;
+
     private TrajectorySequenceRunner trajectorySequenceRunner;
 
     private static final TrajectoryVelocityConstraint VEL_CONSTRAINT = getVelocityConstraint(MAX_VEL, MAX_ANG_VEL, TRACK_WIDTH);
@@ -84,6 +87,20 @@ public class SampleMecanumDrive extends MecanumDrive {
     private VoltageSensor batteryVoltageSensor;
 
     private LocalizationType localizationType;
+
+    public static double MAX_POWER = MINIMUM_VOLTAGE / NOMINAL_VOLTAGE;
+
+    public double getPowerFactor(){
+        return MAX_POWER * (NOMINAL_VOLTAGE / batteryVoltageSensor.getVoltage());
+    }
+
+    public double getCorrectedPower(double power){
+        return power * getPowerFactor();
+    }
+
+    public Pose2d getCorrectedPower(Pose2d power){
+        return power.times(getPowerFactor());
+    }
 
     public SampleMecanumDrive(HardwareMap hardwareMap){
         this(hardwareMap, LocalizationType.THREE_WHEEL);
@@ -293,6 +310,9 @@ public class SampleMecanumDrive extends MecanumDrive {
                     OMEGA_WEIGHT * drivePower.getHeading()
             ).div(denom);
         }
+
+        // account for voltage dif
+        vel = getCorrectedPower(vel);
 
         setDrivePower(vel);
     }

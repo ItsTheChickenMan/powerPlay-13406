@@ -13,7 +13,7 @@ public class JunctionHelper {
 	public static final double FIELD_LENGTH = 141;
 
 	public static final double NONE_JUNCTION_HEIGHT_INCHES = -1.0;
-	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 3.5;
+	public static final double GROUND_JUNCTION_HEIGHT_INCHES = 0.65;
 	public static final double LOW_JUNCTION_HEIGHT_INCHES = 13.5;
 	public static final double MEDIUM_JUNCTION_HEIGHT_INCHES = 23.5;
 	public static final double HIGH_JUNCTION_HEIGHT_INCHES = 33.5;
@@ -21,7 +21,7 @@ public class JunctionHelper {
 	public static final Level[] JUNCTION_LEVELS = {Level.GROUND, Level.LOW, Level.MEDIUM, Level.HIGH};
 	public static final double[] JUNCTION_HEIGHTS = {JunctionHelper.GROUND_JUNCTION_HEIGHT_INCHES, JunctionHelper.LOW_JUNCTION_HEIGHT_INCHES, JunctionHelper.MEDIUM_JUNCTION_HEIGHT_INCHES, JunctionHelper.HIGH_JUNCTION_HEIGHT_INCHES};
 
-	public static enum Level {
+	public enum Level {
 		NONE,
 		GROUND,
 		LOW,
@@ -138,6 +138,10 @@ public class JunctionHelper {
 		return JunctionHelper.getJunctionHeight(level);
 	}
 
+	public static double getJunctionHeight(int[] coords){
+		return getJunctionHeight(coords[0], coords[1]);
+	}
+
 	private static boolean approximatelyEqual(double a, double b){
 		return Math.abs(a - b) < 1.0;
 	}
@@ -163,5 +167,25 @@ public class JunctionHelper {
 	 */
 	public static boolean validateJunctionCoordinates(int x, int y){
 		return x > 0 && x < 6 && y > 0 && y < 6;
+	}
+
+	public static Level incrementWrap(Level level){
+		int index = getJunctionIndex(level);
+
+		index++;
+
+		index = Math.floorMod(index, JUNCTION_LEVELS.length);
+
+		return JunctionHelper.getJunctionLevelFromIndex(index);
+	}
+
+	public static Level decrementWrap(Level level){
+		int index = getJunctionIndex(level);
+
+		index--;
+
+		index = Math.floorMod(index, JUNCTION_LEVELS.length);
+
+		return JunctionHelper.getJunctionLevelFromIndex(index);
 	}
 }

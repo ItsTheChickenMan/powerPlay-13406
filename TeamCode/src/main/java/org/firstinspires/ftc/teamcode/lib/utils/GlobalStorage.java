@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -29,7 +30,7 @@ public class GlobalStorage {
     // offset to use for auto junction
     // manually set by the driver by eyeballing it before auto
     // not the best option, but not the worst either...just can't forget to do it (but if I do it defaults to 0, 0 so it should still be somewhat safe)
-    public static Vector2D autoJunctionOffset;
+    public static Vector2d autoJunctionOffset;
 
     public static void clearGlobalStorage(){
         GlobalStorage.globalTelemetry = null;
@@ -37,7 +38,7 @@ public class GlobalStorage {
         GlobalStorage.currentElbowAngleRadians = 0.0;
         GlobalStorage.currentSlidesExtension = AbeConstants.SLIDES_BASE_LENGTH_INCHES;
         GlobalStorage.didAuto = false;
-        GlobalStorage.autoJunctionOffset = new Vector2D(0, 0);
+        GlobalStorage.autoJunctionOffset = new Vector2d(0, 0);
     }
 
     public static void logGlobalStorage(Telemetry telemetry){
