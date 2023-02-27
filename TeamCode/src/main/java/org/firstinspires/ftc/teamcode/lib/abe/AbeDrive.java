@@ -35,7 +35,7 @@ public class AbeDrive {
 	private double lastErrorRadians = 0.0;
 	private double lastDerivativeRadians = 0.0;
 
-	private double steadyStateMaximumErrorRadians= Math.toRadians(3.0);
+	private double steadyStateMaximumErrorRadians= Math.toRadians(3.25);
 	private double steadyStateMaximumDerivativeRadians = Math.toRadians(2.0);
 
 	private ElapsedTime deltaTimer;

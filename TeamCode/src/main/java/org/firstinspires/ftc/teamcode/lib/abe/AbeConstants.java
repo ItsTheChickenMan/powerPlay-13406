@@ -16,7 +16,7 @@ public class AbeConstants {
 	// general... //
 
 	// drive related... //
-	public static PIDCoefficients AIM_HEADING_PID = new PIDCoefficients(5.5, 0, 0.2);
+	public static PIDCoefficients AIM_HEADING_PID = new PIDCoefficients(6.2, 0, 0.2);
 	public static double MAX_ROTATION_POWER = 0.6;
 
 	// general arm related... //
@@ -44,7 +44,7 @@ public class AbeConstants {
 	public static double ELBOW_TPR = 384.5;
 	public static double ELBOW_GEAR_RATIO = 24;
 	public static double ELBOW_RADIUS_INCHES = 3.625;
-	public static double ELBOW_VELOCITY_RADIANS = Math.toRadians(50);
+	public static double ELBOW_VELOCITY_RADIANS = Math.toRadians(60);
 	public static double ELBOW_LOWER_LIMIT_RADIANS = Math.toRadians(-16);
 	public static double ELBOW_UPPER_LIMIT_RADIANS = Math.toRadians(75);
 	public static double ELBOW_INITIALIZATION_ANGLE_RADIANS = Math.toRadians(26.45);
@@ -60,11 +60,11 @@ public class AbeConstants {
 	// wrist related... //
 	public static double WRIST_MAX_RANGE_DEGREES = 245;
 	public static double WRIST_ZERO_ANGLE_DEGREES = -60.0;
-	public static double WRIST_OFFSET_INCHES = 5.8;
+	public static double WRIST_OFFSET_INCHES = 4.0; // 5.8
 	public static double WRIST_DEFAULT_ANGLE_DEGREES = -80.0;
-	public static double WRIST_UP_ANGLE_DEGREES = 45.0;
+	public static double WRIST_UP_ANGLE_DEGREES = 62.0;
 	public static double WRIST_HIGH_ANGLE_DEGREES = 55;
-	public static double WRIST_DROP_ANGLE_DEGREES = 0.0;
+	public static double WRIST_DROP_ANGLE_DEGREES = 35.0;
 	public static double WRIST_GRAB_ANGLE_DEGREES = -10.0;
 
 	// claw related... //

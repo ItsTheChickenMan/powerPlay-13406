@@ -18,6 +18,8 @@ public class InitializeAbe extends AbeOpMode {
 
 		this.abe.arm.setElbowAngleRadians(AbeConstants.ELBOW_INITIALIZATION_ANGLE_RADIANS);
 
+		this.abe.arm.setSlidesRestingExtensionInches(AbeConstants.SLIDES_BASE_LENGTH_INCHES);
+
 		this.abe.arm.update(true, false);
 
 		while(!isStopRequested()){

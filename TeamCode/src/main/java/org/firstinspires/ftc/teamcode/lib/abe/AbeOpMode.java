@@ -23,10 +23,19 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 @Config
 public abstract class AbeOpMode extends LinearOpMode {
 	// constants
-	public static double[] JUNCTION_HEIGHT_OFFSETS_INCHES = new double[]{6.0, 2.0, -1.5, -1.5}; // ground, low, medium, high
+	public static double GROUND_JUNCTION_HEIGHT_OFFSET_INCHES = 6.0;
+	public static double LOW_JUNCTION_HEIGHT_OFFSET_INCHES = 0.0;
+	public static double MEDIUM_JUNCTION_HEIGHT_OFFSET_INCHES = -4;
+	public static double HIGH_JUNCTION_HEIGHT_OFFSET_INCHES = -4;
+
+	// done this way to work with FTC dashboard (since it can't edit arrays yet?)
+	public static double[] getJunctionHeightOffsetsInches(){
+		return new double[]{GROUND_JUNCTION_HEIGHT_OFFSET_INCHES, LOW_JUNCTION_HEIGHT_OFFSET_INCHES, MEDIUM_JUNCTION_HEIGHT_OFFSET_INCHES, HIGH_JUNCTION_HEIGHT_OFFSET_INCHES}; // ground, low, medium, high
+	}
+
 	public static double BASE_CONE_STACK_HEIGHT = AbeTeleOp.ARM_GRAB_POSITION_INCHES.getY();
 	public static double CONE_STACK_HEIGHT_INCREASE_RATE = 1.5;
-	public static final Vector2d CONE_STACK_RIGHT_POSITION = new Vector2d(58.5, 2.5);
+	public static final Vector2d CONE_STACK_RIGHT_POSITION = new Vector2d(58.5, 7.6 - AbeConstants.WRIST_OFFSET_INCHES); // generally, this shouldn't have to depend on the wrist offset.  it does in this case because the code doesn't account for odd angles of the wrist; it was only ever meant to work at 0 degrees.  I could change it, but this is pretty much the only place where it actually matters.  It's just easier to hardcode it.
 
 	// global timer
 	private ElapsedTime globalTimer;
@@ -158,7 +167,7 @@ public abstract class AbeOpMode extends LinearOpMode {
 		// modify height accordingly
 		int index = JunctionHelper.getJunctionIndex(x, y);
 
-		height += JUNCTION_HEIGHT_OFFSETS_INCHES[index];
+		height += getJunctionHeightOffsetsInches()[index];
 
 		// aim
 		this.abe.aimAt(raw.getX(), height, raw.getY());

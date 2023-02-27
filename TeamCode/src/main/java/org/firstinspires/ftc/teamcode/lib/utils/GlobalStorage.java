@@ -38,7 +38,8 @@ public class GlobalStorage {
         GlobalStorage.currentElbowAngleRadians = 0.0;
         GlobalStorage.currentSlidesExtension = AbeConstants.SLIDES_BASE_LENGTH_INCHES;
         GlobalStorage.didAuto = false;
-        GlobalStorage.autoJunctionOffset = new Vector2d(0, 0);
+        // default to -0.4 to account for slight drift
+        GlobalStorage.autoJunctionOffset = new Vector2d(0, -0.4);
     }
 
     public static void logGlobalStorage(Telemetry telemetry){

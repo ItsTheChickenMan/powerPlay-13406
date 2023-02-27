@@ -36,10 +36,10 @@ public class AbeArm {
 	private PolynomialRegression[] sagCorrectionRegressions;
 
 	// steady state details
-	private double elbowSteadyStateMaximumErrorRadians = Math.toRadians(1.0);
+	private double elbowSteadyStateMaximumErrorRadians = Math.toRadians(1.25);
 	private double elbowSteadyStateMaximumDerivativeRadians = Math.toRadians(2.0);
 
-	private double slidesSteadyStateMaximumErrorInches = 0.75;
+	private double slidesSteadyStateMaximumErrorInches = 1.0;
 	private double slidesSteadyStateMaximumDerivativeInches = 0.75;
 
 	private double elbowLastErrorRadians = 0.0;

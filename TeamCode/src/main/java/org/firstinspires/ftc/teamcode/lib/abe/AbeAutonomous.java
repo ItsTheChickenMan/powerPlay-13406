@@ -17,12 +17,12 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 public abstract class AbeAutonomous extends AbeOpMode {
 	public static int CONES_IN_STACK_AT_START = 5;
 
-	public static double GRABBING_TIME_SECONDS = 1.0;
-	public static double WRISTING_TIME_SECONDS = 1.0;
+	public static double GRABBING_TIME_SECONDS = 0.25;
+	public static double WRISTING_TIME_SECONDS = 0.1;
 	public static double WRIST_LIFTING_ANGLE_DEGREES = 95;
-	public static double WRIST_LIFTING_TIME_SECONDS = 1.0;
+	public static double WRIST_LIFTING_TIME_SECONDS = 0.35;
 
-	public static Vector2d[] PARKING_SPOTS_RIGHT = {new Vector2d(60, 60), new Vector2d(60, 36), new Vector2d(60, 14)};
+	public static Vector2d[] PARKING_SPOTS_RIGHT = {new Vector2d(57, 60), new Vector2d(57, 36), new Vector2d(57, 8)};
 
 	public enum Mode {
 		LEFT,
@@ -158,6 +158,11 @@ public abstract class AbeAutonomous extends AbeOpMode {
 					correctPoseEstimateWithIMU();
 				}
 
+				if(isEventFiring(this.stateSwitchScheduler) && this.conesInStack == 1){
+					// skip lifting state on last cone (increments following the switch)
+					this.cycleState = CycleState.LIFTING;
+				}
+
 				break;
 			}
 
@@ -192,6 +197,9 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				// schedule switch when drive is close enough
 				if(this.updatesSinceCycleSwitch > 2 && this.abe.drive.isSteady() && !isEventScheduled(this.stateSwitchScheduler)){
 					this.stateSwitchScheduler = getScheduledTimeNow();
+
+					// update drive with imu while we're not moving
+					correctPoseEstimateWithIMU();
 				}
 
 				break;
@@ -209,9 +217,6 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				// schedule switch when slides are close enough
 				if(this.updatesSinceCycleSwitch > 2 && this.abe.isSteady() && !isEventScheduled(this.stateSwitchScheduler)){
 					this.stateSwitchScheduler = getScheduledTimeNow();
-
-					// update drive with imu while we're not moving
-					correctPoseEstimateWithIMU();
 				}
 
 				break;
@@ -226,7 +231,7 @@ public abstract class AbeAutonomous extends AbeOpMode {
 				this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DROP_ANGLE_DEGREES);
 				this.abe.arm.setHandClamped();
 
-				if(!isEventScheduled(this.stateSwitchScheduler)){
+				if(gamepad2.a && !isEventScheduled(this.stateSwitchScheduler)){
 					this.stateSwitchScheduler = getScheduledTime(WRISTING_TIME_SECONDS);
 				}
 

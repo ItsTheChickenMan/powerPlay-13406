@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.auto;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
@@ -15,12 +16,13 @@ import org.firstinspires.ftc.teamcode.opmodes.teleop.AbeAutomatic;
 /**
  * @brief Generic autonomous program with various settings (not really meant for actual use, but could be used?)
  */
+@Config
 public class GenericAuto extends AbeAutonomous {
 	// settings... //
 	public Mode MODE = Mode.RIGHT; // mode
-	public Vector2d DEPOSIT_POSITION = new Vector2d(55, 35); // place where the robot should be while depositing
+	public Vector2d DEPOSIT_POSITION = new Vector2d(56, 35); // place where the robot should be while depositing
 	public int[] DEPOSIT_JUNCTION = {3, 2}; // junction to deposit on using junction coords
-	public double SIGNAL_PUSH_DISTANCE_INCHES = 6.0; // distance to push the signal
+	public double SIGNAL_PUSH_DISTANCE_INCHES = 2.0; // distance to push the signal (doesn't tend to line up with actual distance bc splines)
 	public int[] DEPOSIT_ATTEMPTS = {6, 6, 6}; // amount of deposit attempts to make depending on randomization, preload included (1 being preload only)
 
 	/**
@@ -117,14 +119,18 @@ public class GenericAuto extends AbeAutonomous {
 		// roll out to deposit position
 		this.abe.drive.followTrajectory(toDepositPositionTrajectory);
 
+		// update drive with imu while we're not moving
+		correctPoseEstimateWithIMU();
+
 		// depositing some cones?
 		if(depositAttempts > 0) {
 			// auto cycles
-			while(this.getConesInStack() > (CONES_IN_STACK_AT_START - depositAttempts) && !isStopRequested()){
+			while(this.getConesInStack() > (CONES_IN_STACK_AT_START - depositAttempts + 1) && !isStopRequested()){
 				cycle();
 
 				update();
 
+				telemetry.addData("pose estimate", this.abe.drive.getPoseEstimate());
 				telemetry.addData("drive steady?", this.abe.drive.isSteady());
 				telemetry.addData("elbow steady?", this.abe.arm.isElbowSteady());
 				telemetry.addData("slides steady?", this.abe.arm.areSlidesSteady());
@@ -137,14 +143,16 @@ public class GenericAuto extends AbeAutonomous {
 		// move arm to neutral position
 		this.abe.clearAim();
 
-		this.abe.arm.aimAt(AbeTeleOp.ARM_DEFAULT_POSITION_INCHES.getX(), AbeTeleOp.ARM_DEFAULT_POSITION_INCHES.getY());
+		//this.abe.arm.aimAt(AbeTeleOp.ARM_DEFAULT_POSITION_INCHES.getX(), AbeTeleOp.ARM_DEFAULT_POSITION_INCHES.getY());
+		this.abe.arm.setElbowAngleRadians(AbeConstants.ELBOW_INITIALIZATION_ANGLE_RADIANS);
+		this.abe.arm.setSlidesLengthInches(AbeConstants.SLIDES_BASE_LENGTH_INCHES + 0.5);
 
-		// tuck wrist down
-		this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DEFAULT_ANGLE_DEGREES);
+		// bring wrist up
+		this.abe.arm.setDesiredWristAngleDegrees(AbeAutonomous.WRIST_LIFTING_ANGLE_DEGREES);
+		//this.abe.arm.setDesiredWristAngleDegrees(AbeConstants.WRIST_DEFAULT_ANGLE_DEGREES);
 
 		this.abe.arm.update();
 
-		// TODO: find out if trajectories are still followed the right way if the starting position is off
 		// park
 		Trajectory parkTrajectory = parkingTrajectories[spottedTagId];
 
