@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -21,12 +22,12 @@ public class AbeBot {
 	// aim details...//
 	private Vector3D aimAtPoint; // generally we use roadrunner vectors, but there's no Vector3d for roadrunner
 
-	public AbeBot(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
+	public AbeBot(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType, PIDCoefficients aimHeadingCoefficients){
 		// get hardware
 		AbeConfig.Hardware hardware = AbeConfig.loadHardware(hardwareMap);
 
 		// construct drive
-		this.drive = new AbeDrive(hardwareMap, localizationType);
+		this.drive = new AbeDrive(hardwareMap, localizationType, aimHeadingCoefficients);
 
 		// load motors
 		PositionableMotor elbowMotor = new PositionableMotor(hardware.elbowMotor, AbeConstants.ELBOW_GEAR_RATIO, AbeConstants.ELBOW_TPR, AbeConstants.ELBOW_LOWER_LIMIT_RADIANS, AbeConstants.ELBOW_UPPER_LIMIT_RADIANS);
@@ -92,7 +93,8 @@ public class AbeBot {
 		double botDistance2 = offsetX*offsetX + offsetY*offsetY;
 		double armDistance = Math.sqrt(botDistance2 - AbeConstants.ARM_Y_OFFSET_INCHES * AbeConstants.ARM_Y_OFFSET_INCHES) - AbeConstants.ARM_X_OFFSET_INCHES;
 
-		armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
+		// NOTE: now taken care of by arm class
+		// armDistance -= AbeConstants.WRIST_OFFSET_INCHES;
 
 		return armDistance;
 	}
@@ -101,19 +103,11 @@ public class AbeBot {
 		return end.getY() - AbeConstants.ARM_Y_OFFSET_INCHES;
 	}
 
-	/**
-	 * @brief update the robot parts specified, and do aim logic if needed
-	 *
-	 * @param doDrive do drive train update
-	 * @param doElbow move the elbow
-	 * @param doSlides move the slides
-	 */
-	public void update(boolean doDrive, boolean doElbow, boolean doSlides){
-		// update drive train
-		if(doDrive){
-			this.drive.update();
-		}
+	public void updateArm(){
+		this.updateArm(true, true);
+	}
 
+	public void updateArm(boolean doElbow, boolean doSlides){
 		// do aim logic
 		if(this.isAiming()){
 			Pose2d poseEstimate = this.drive.getPoseEstimate();
@@ -131,9 +125,45 @@ public class AbeBot {
 		this.arm.update(doElbow, doSlides);
 	}
 
+	public void updateDrive(){
+		this.drive.update();
+	}
+
+	public void updateDriveNoRoadrunner(){
+		this.drive.updateNoRoadrunnerDrive();
+	}
+
+	/**
+	 * @brief update the robot parts specified, and do aim logic if needed
+	 *
+	 * @param doDrive do drive train update
+	 * @param doElbow move the elbow
+	 * @param doSlides move the slides
+	 */
+	public void updateNoRoadrunner(boolean doDrive, boolean doElbow, boolean doSlides){
+		// update drive train
+		if(doDrive){
+			this.updateDriveNoRoadrunner();
+		}
+
+		this.updateArm(doElbow, doSlides);
+	}
+
 	/**
 	 * @brief update all of the robot parts, do aim logic if needed
 	 */
+	public void updateNoRoadrunner(){
+		this.update(true, true, true);
+	}
+
+	public void update(boolean doDrive, boolean doElbow, boolean doSlides){
+		if(doDrive){
+			this.updateDrive();
+		}
+
+		this.updateArm(doElbow, doSlides);
+	}
+
 	public void update(){
 		this.update(true, true, true);
 	}

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
+import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
@@ -20,8 +21,16 @@ public class PIDControllerRotation extends PIDController {
 		super(p, i, d);
 	}
 
+	public PIDControllerRotation(PIDCoefficients coefficients){
+		super(coefficients);
+	}
+
 	public PIDControllerRotation(double p, double i, double d, ElapsedTime timer){
 		super(p, i, d, timer);
+	}
+
+	public PIDControllerRotation(PIDCoefficients coefficients, ElapsedTime timer){
+		super(coefficients, timer);
 	}
 
 	public void setDirection(RotationDirection direction){
@@ -37,14 +46,14 @@ public class PIDControllerRotation extends PIDController {
 	}
 
 	@Override
-	public double getError(){
-		double distance = AngleHelper.angularDistanceRadians(this.target, this.measured);
+	public double getLastError(){
+		double distance = AngleHelper.angularDistanceRadians(this.measured, this.target);
 
 		// flip distance to one direction if necessary
 		if(Math.abs(distance) > this.tolerance){
-			if(this.direction == RotationDirection.CW && distance < 0){
+			if(this.direction == RotationDirection.CCW && distance < 0){
 				distance = Math.PI*2 + distance;
-			} else if(this.direction == RotationDirection.CCW && distance > 0){
+			} else if(this.direction == RotationDirection.CW && distance > 0){
 				distance = distance - Math.PI*2;
 			}
 		}

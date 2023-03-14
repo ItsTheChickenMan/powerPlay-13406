@@ -4,30 +4,32 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeAutonomous;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeConstants;
 import org.firstinspires.ftc.teamcode.lib.abe.AbeTeleOp;
+import org.firstinspires.ftc.teamcode.lib.utils.AngleHelper;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
+import org.firstinspires.ftc.teamcode.lib.utils.MathUtils;
 import org.firstinspires.ftc.teamcode.lib.utils.PIDControllerRotation;
 import org.firstinspires.ftc.teamcode.opmodes.teleop.AbeAutomatic;
 
-/**
- * @brief Generic autonomous program with various settings (not really meant for actual use, but could be used?)
- */
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+
 @Config
-public class GenericAuto extends AbeAutonomous {
-	/**
-	 * Maximum amount of time the auto will run before parking no matter what.  Helps ensure that bad failures or plain slowness don't prevent the auto from ending and screwing up global storage, and ensures the park points are gotten
-	 */
-	public static double MAXIMUM_TIME_BEFORE_PARK = 28; // set to <=0 to never park until all cones are cycled (mainly just for debugging)
-	public static double TELEMETRY_UPDATE_RATE_MS = 50;
+@Autonomous
+public class AutoDriftMeasurer extends AbeAutonomous {
+	public static String FILENAME = "autodriftmeasure.txt";
 
 	// settings... //
 	public Mode MODE = Mode.RIGHT; // mode
-	public Vector2d DEPOSIT_POSITION = new Vector2d(56.5, 34.5); // place where the robot should be while depositing
+	public Vector2d DEPOSIT_POSITION = new Vector2d(50, 35); // place where the robot should be while depositing
 	public int[] DEPOSIT_JUNCTION = {3, 2}; // junction to deposit on using junction coords
 	public double SIGNAL_PUSH_DISTANCE_INCHES = 1.0; // distance to push the signal (doesn't tend to line up with actual distance bc splines)
 	public int[] DEPOSIT_ATTEMPTS = {6, 6, 6}; // amount of deposit attempts to make depending on randomization, preload included (1 being preload only)
@@ -42,8 +44,6 @@ public class GenericAuto extends AbeAutonomous {
 	@Override
 	public void runOpMode() throws InterruptedException {
 		setAutoBulkReads();
-
-		telemetry.setMsTransmissionInterval((int)TELEMETRY_UPDATE_RATE_MS);
 
 		GlobalStorage.globalTelemetry = telemetry;
 
@@ -82,9 +82,9 @@ public class GenericAuto extends AbeAutonomous {
 		if(SIGNAL_PUSH_DISTANCE_INCHES < 0.01) SIGNAL_PUSH_DISTANCE_INCHES = 0.01; // prevents dumb exception
 
 		toDepositPositionTrajectory = this.abe.drive.trajectoryBuilder(startPose)
-							.splineToSplineHeading(new Pose2d(depositPosition.getX() + SIGNAL_PUSH_DISTANCE_INCHES, depositPosition.getY(), 0), 0)
-							.splineToSplineHeading(new Pose2d(depositPosition, depositAngle), 0)
-							.build();
+						.splineToSplineHeading(new Pose2d(depositPosition.getX() + SIGNAL_PUSH_DISTANCE_INCHES, depositPosition.getY(), 0), 0)
+						.splineToSplineHeading(new Pose2d(depositPosition, depositAngle), 0)
+						.build();
 		//}
 
 		Trajectory[] parkingTrajectories = new Trajectory[3];
@@ -154,13 +154,52 @@ public class GenericAuto extends AbeAutonomous {
 		double duration = 1;
 		int updates = 0;
 
+		Vector2d totalPoseCorrection = new Vector2d(0, 0);
+		Vector2d semiTotalPoseCorrection = new Vector2d(0, 0);
+
+		ArrayList<Vector2d> allPoseCorrections = new ArrayList<>();
+
 		// depositing some cones?
 		if(depositAttempts > 0) {
 			setManualBulkReads();
 
+			boolean toggled = false;
+
 			// auto cycles
-			while(this.getConesInStack() > (CONES_IN_STACK_AT_START - depositAttempts + 1) && (MAXIMUM_TIME_BEFORE_PARK <= 0 || autoTimer.seconds() < MAXIMUM_TIME_BEFORE_PARK) && !isStopRequested()){
+			while(this.getConesInStack() > (CONES_IN_STACK_AT_START - depositAttempts + 1) && !isStopRequested()){
+				double delta = getDelta();
+				resetDelta();
+
 				clearBulkCache();
+
+				// pose correction
+				double poseCorrectionX = gamepad2.right_stick_y;
+				double poseCorrectionY = gamepad2.right_stick_x;
+				double correctionSpeed = gamepad2.right_trigger;
+
+				// check pose correction
+				Vector2d poseCorrection = new Vector2d(poseCorrectionX, poseCorrectionY);
+
+				// correction rate
+				double min = AbeTeleOp.MIN_POSE_CORRECTION_RATE_INCHES_PER_SECOND;
+				double max = AbeTeleOp.MAX_POSE_CORRECTION_RATE_INCHES_PER_SECOND;
+				double correctionRate = MathUtils.map(correctionSpeed, 0.0, 1.0, min, max);
+
+				correctionRate *= delta;
+
+				poseCorrection = poseCorrection.times(correctionRate);
+
+				this.abe.drive.addToPoseOffset(poseCorrection);
+
+				totalPoseCorrection = totalPoseCorrection.plus(poseCorrection);
+
+				if(this.getCycleState() == CycleState.WRISTING && !toggled){
+					allPoseCorrections.add(totalPoseCorrection.minus(semiTotalPoseCorrection));
+
+					semiTotalPoseCorrection = new Vector2d(totalPoseCorrection.getX(), totalPoseCorrection.getY());
+				}
+
+				toggled = this.getCycleState() == CycleState.WRISTING;
 
 				cycle();
 
@@ -174,16 +213,11 @@ public class GenericAuto extends AbeAutonomous {
 				telemetry.addData("drive error", this.abe.drive.getAimErrorDegrees());
 				telemetry.update();*/
 
-				telemetry.addData("pose estimate", this.abe.drive.getPoseEstimate());
-				/*telemetry.addData("slides error at time", clampTime);
-				telemetry.addData("updates at clamp time", aaa);
-				telemetry.addData("updates since cycle switch", updatesSinceCycleSwitch);
-				telemetry.addData("time", getGlobalTimeSeconds());*/
-				telemetry.addData("drive steady?", this.abe.drive.isSteady());
-				telemetry.addData("elbow steady?", this.abe.arm.isElbowSteady());
-				telemetry.addData("slides steady?", this.abe.arm.areSlidesSteady());
-				telemetry.addData("drive error", this.abe.drive.getAimErrorDegrees());
+				double headingError = AngleHelper.angularDistanceRadians(this.abe.drive.getRawExternalHeading(), this.abe.drive.getPoseEstimate().getHeading());
 
+				telemetry.addData("delta", delta);
+				telemetry.addData("pose estimate", this.abe.drive.getPoseEstimate());
+				telemetry.addData("heading error (degrees)", Math.toDegrees(headingError));
 				telemetry.update();
 
 				updates++;
@@ -207,27 +241,27 @@ public class GenericAuto extends AbeAutonomous {
 
 		this.abe.arm.update(true, true);
 
-		// park
-		Trajectory parkTrajectory = parkingTrajectories[spottedTagId];
+		try {
+			FileWriter writer = new FileWriter("/sdcard/FIRST/" + FILENAME);
 
-		this.abe.drive.followTrajectoryAsync(parkTrajectory);
+			// closing bracket + double newline
+			writer.write(allPoseCorrections.toString());
 
-		// save at least once
-		this.saveStateCorrectPose();
+			writer.close();
+		} catch(IOException e){
+			telemetry.addLine("error:");
+			telemetry.addLine(e.getMessage());
+			telemetry.addLine(e.getStackTrace().toString());
+			telemetry.update();
+
+			while(!isStopRequested());
+		}
 
 		while(!isStopRequested()){
-			// save state
-			// without this additional check, the whole thing breaks.  I wish I knew why...
-			// don't save in the last 1/10th of a second because saving at the end of the opmode breaks the save?
-			if(autoTimer.seconds() < 29.9){
-				this.saveStateCorrectPose();
-			}
-
-			// update rr only
-			this.abe.drive.updateRoadrunnerDrive();
-
 			telemetry.addData("avg loop time (ms)", (duration / updates) * 1000);
 			telemetry.addData("loops/second", (double)updates / duration);
+			telemetry.addData("total pose correction", totalPoseCorrection);
+			telemetry.addData("pose correction per cycle", allPoseCorrections);
 			telemetry.update();
 		}
 	}
@@ -252,10 +286,5 @@ public class GenericAuto extends AbeAutonomous {
 
 		// override saved estimate
 		GlobalStorage.currentPose = corrected;
-	}
-
-	public void correctJunctionOffset(){
-		// add drift
-		GlobalStorage.autoJunctionOffset = GlobalStorage.autoJunctionOffset.plus(new Vector2d(JUNCTION_OFFSET_DRIFT_X, JUNCTION_OFFSET_DRIFT_Y));
 	}
 }

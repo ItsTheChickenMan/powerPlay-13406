@@ -1,16 +1,19 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
+import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
+import org.firstinspires.ftc.teamcode.lib.utils.PIDControllerRotation;
 
 public class AbeDrive {
 	public enum AimMode {
@@ -27,7 +30,7 @@ public class AbeDrive {
 	private Pose2d desiredMovement;
 
 	// aim details... //
-	private PIDFController headingController;
+	private PIDControllerRotation headingController;
 	private AimMode currentAimMode;
 	private Vector2d aimPoint;
 
@@ -40,11 +43,11 @@ public class AbeDrive {
 
 	private ElapsedTime deltaTimer;
 
-	public AbeDrive(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
+	public AbeDrive(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType, PIDCoefficients aimHeadingCoefficients){
 		this.roadrunnerDrive = new SampleMecanumDrive(hardwareMap, localizationType);
-		this.headingController = new PIDFController(AbeConstants.AIM_HEADING_PID);
+		this.headingController = new PIDControllerRotation(aimHeadingCoefficients);
 
-		this.headingController.setInputBounds(-Math.PI, Math.PI);
+		//this.headingController.setInputBounds(-Math.PI, Math.PI);
 
 		this.poseOffset = new Vector2d(0, 0);
 		this.desiredMovement = new Pose2d(0, 0, 0);
@@ -52,6 +55,14 @@ public class AbeDrive {
 		this.aimPoint = null;
 
 		this.deltaTimer = new ElapsedTime();
+	}
+
+	public AbeDrive(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
+		this(hardwareMap, localizationType, AbeConstants.AIM_HEADING_PID);
+	}
+
+	public void setRotationDirection(PIDControllerRotation.RotationDirection rotationDirection){
+		this.headingController.setDirection(rotationDirection);
 	}
 
 	/**
@@ -71,8 +82,8 @@ public class AbeDrive {
 	 * @return true if drive is steady (within a certain error and speed threshold)
 	 */
 	public boolean isSteady(){
-		GlobalStorage.globalTelemetry.addData("last error radians", this.lastErrorRadians);
-		GlobalStorage.globalTelemetry.addData("last derivative radians", this.lastDerivativeRadians);
+		// GlobalStorage.globalTelemetry.addData("last error radians", this.lastErrorRadians);
+		// GlobalStorage.globalTelemetry.addData("last derivative radians", this.lastDerivativeRadians);
 
 		return isSteady(steadyStateMaximumErrorRadians, steadyStateMaximumDerivativeRadians);
 	}
@@ -145,7 +156,7 @@ public class AbeDrive {
 	}
 
 	public void setPoseOffset(Vector2d offset){
-		this.poseOffset.copy(offset.getX(), offset.getY());
+		this.poseOffset = new Vector2d(offset.getX(), offset.getY());
 	}
 
 	public void addToPoseOffset(Vector2d offset){
@@ -231,6 +242,16 @@ public class AbeDrive {
 	}
 
 	public void update(boolean useThetaFF){
+		this.updateNoRoadrunnerDrive(useThetaFF);
+
+		this.updateRoadrunnerDrive();
+	}
+
+	public void updateNoRoadrunnerDrive(){
+		this.updateNoRoadrunnerDrive(false);
+	}
+
+	public void updateNoRoadrunnerDrive(boolean useThetaFF){
 		// get pose estimate
 		Pose2d poseEstimate = this.roadrunnerDrive.getPoseEstimate();
 
@@ -259,7 +280,7 @@ public class AbeDrive {
 					if(velocity != null && useThetaFF) thetaFF = -velocity.vec().rotated(-Math.PI / 2).dot(offset) / (distance * distance);
 
 					// update pidf controller
-					headingController.setTargetPosition(theta);
+					if(!Double.isNaN(theta)) headingController.setTargetPosition(theta);
 				}
 
 				break;
@@ -280,13 +301,16 @@ public class AbeDrive {
 			}
 		}
 
+		double extraKickFF = this.isAiming() && !this.isSteady() ? AbeConstants.AIM_EXTRA_KICK : 0;
+
 		// calculate heading input
 		double headingInput = this.desiredMovement.getHeading();
 
 		if(this.currentAimMode != AimMode.NONE){
+			double out = headingController.update(poseEstimate.getHeading());
+
 			// calculate power
-			// TODO: add in feedforward?
-			headingInput = (headingController.update(poseEstimate.getHeading()) * DriveConstants.kV + thetaFF) * DriveConstants.TRACK_WIDTH;
+			headingInput = (out * DriveConstants.kV + thetaFF + extraKickFF*Math.signum(out)) * DriveConstants.TRACK_WIDTH;
 		}
 
 		// cap heading input
@@ -303,8 +327,6 @@ public class AbeDrive {
 
 		// update steady state stuff
 		this.updateSteadyState();
-
-		this.updateRoadrunnerDrive();
 
 		// clear desired movement
 		this.desiredMovement = new Pose2d();

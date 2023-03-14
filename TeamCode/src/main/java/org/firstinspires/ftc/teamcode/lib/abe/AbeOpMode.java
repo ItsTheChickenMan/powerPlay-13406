@@ -1,17 +1,20 @@
 package org.firstinspires.ftc.teamcode.lib.abe;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.lib.utils.GamepadEx;
 import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
+
+import java.util.List;
 
 /**
  * @brief abstract class for writing an op mode that utilizes abe
@@ -24,9 +27,9 @@ import org.firstinspires.ftc.teamcode.lib.utils.JunctionHelper;
 public abstract class AbeOpMode extends LinearOpMode {
 	// constants
 	public static double GROUND_JUNCTION_HEIGHT_OFFSET_INCHES = 6.0;
-	public static double LOW_JUNCTION_HEIGHT_OFFSET_INCHES = 0.0;
-	public static double MEDIUM_JUNCTION_HEIGHT_OFFSET_INCHES = -4;
-	public static double HIGH_JUNCTION_HEIGHT_OFFSET_INCHES = -4;
+	public static double LOW_JUNCTION_HEIGHT_OFFSET_INCHES = 6.0;
+	public static double MEDIUM_JUNCTION_HEIGHT_OFFSET_INCHES = 4.0;
+	public static double HIGH_JUNCTION_HEIGHT_OFFSET_INCHES = 4.0;
 
 	// done this way to work with FTC dashboard (since it can't edit arrays yet?)
 	public static double[] getJunctionHeightOffsetsInches(){
@@ -35,7 +38,12 @@ public abstract class AbeOpMode extends LinearOpMode {
 
 	public static double BASE_CONE_STACK_HEIGHT = AbeTeleOp.ARM_GRAB_POSITION_INCHES.getY();
 	public static double CONE_STACK_HEIGHT_INCREASE_RATE = 1.5;
-	public static final Vector2d CONE_STACK_RIGHT_POSITION = new Vector2d(58.5, 7.6 - AbeConstants.WRIST_OFFSET_INCHES); // generally, this shouldn't have to depend on the wrist offset.  it does in this case because the code doesn't account for odd angles of the wrist; it was only ever meant to work at 0 degrees.  I could change it, but this is pretty much the only place where it actually matters.  It's just easier to hardcode it.
+	public static double CONE_STACK_RIGHT_X = 57.0;
+	public static double CONE_STACK_RIGHT_Y = 8.0;
+
+	public Vector2d getConeStackRightPosition(){
+		return new Vector2d(CONE_STACK_RIGHT_X, CONE_STACK_RIGHT_Y - AbeConstants.WRIST_OFFSET_INCHES); // generally, this shouldn't have to depend on the wrist offset.  it does in this case because the code doesn't account for odd angles of the wrist; it was only ever meant to work at 0 degrees.  I could change it, but this is pretty much the only place where it actually matters.  It's just easier to hardcode it.
+	}
 
 	// global timer
 	private ElapsedTime globalTimer;
@@ -45,8 +53,8 @@ public abstract class AbeOpMode extends LinearOpMode {
 	private double lastTime; // time between updateDelta calls
 
 	// ex gamepads
-	protected GamepadEx gamepadEx1;
-	protected GamepadEx gamepadEx2;
+	public GamepadEx gamepadEx1;
+	public GamepadEx gamepadEx2;
 
 	/**
 	 * @return the time in seconds since initialize() has last been called
@@ -110,11 +118,7 @@ public abstract class AbeOpMode extends LinearOpMode {
 	/**
 	 * @brief Abe
 	 */
-	protected AbeBot abe;
-
-	public void initialize(HardwareMap hardwareMap){
-		this.initialize(hardwareMap, SampleMecanumDrive.LocalizationType.THREE_WHEEL);
-	}
+	public AbeBot abe;
 
 	public void setPoseEstimate(double x, double y, double r){
 		this.abe.drive.setPoseEstimate(new Pose2d(x, y, r));
@@ -131,9 +135,9 @@ public abstract class AbeOpMode extends LinearOpMode {
 	 *
 	 * @param hardwareMap
 	 */
-	public void initialize(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
+	public void initialize(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType, PIDCoefficients aimHeadingCoefficients){
 		// construct abe
-		this.abe = new AbeBot(hardwareMap, localizationType);
+		this.abe = new AbeBot(hardwareMap, localizationType, aimHeadingCoefficients);
 
 		// construct global timer
 		this.globalTimer = new ElapsedTime();
@@ -141,6 +145,14 @@ public abstract class AbeOpMode extends LinearOpMode {
 		// gamepads
 		this.gamepadEx1 = new GamepadEx(gamepad1);
 		this.gamepadEx2 = new GamepadEx(gamepad2);
+	}
+
+	public void initialize(HardwareMap hardwareMap, SampleMecanumDrive.LocalizationType localizationType){
+		initialize(hardwareMap, localizationType, AbeConstants.AIM_HEADING_PID);
+	}
+
+	public void initialize(HardwareMap hardwareMap){
+		this.initialize(hardwareMap, SampleMecanumDrive.LocalizationType.THREE_WHEEL);
 	}
 
 	/**
@@ -152,14 +164,14 @@ public abstract class AbeOpMode extends LinearOpMode {
 	 * @param x x coordinate, from 1 to 5
 	 * @param y y coordinate, from 1 to 5
 	 */
-	public void aimToJunction(int x, int y, Vector2d offset){
+	public void aimToJunction(int x, int y, Vector2d positionOffset, double heightOffset){
 		// check coordinates
 		if(!JunctionHelper.validateJunctionCoordinates(x, y)) return;
 
 		// calculate junction coordinates
 		Vector2d raw = JunctionHelper.snappedToRaw(x, y);
 
-		raw = raw.plus(offset);
+		raw = raw.plus(positionOffset);
 
 		// calculate junction height
 		double height = JunctionHelper.getJunctionHeight(x, y);
@@ -167,14 +179,29 @@ public abstract class AbeOpMode extends LinearOpMode {
 		// modify height accordingly
 		int index = JunctionHelper.getJunctionIndex(x, y);
 
-		height += getJunctionHeightOffsetsInches()[index];
+		height += heightOffset;
 
 		// aim
 		this.abe.aimAt(raw.getX(), height, raw.getY());
 	}
 
+	public void aimToJunction(int x, int y, Vector2d positionOffset){
+		// calculate height offset from constants
+		int index = JunctionHelper.getJunctionIndex(x, y);
+
+		if(index < 0) index = 0;
+
+		double heightOffset = getJunctionHeightOffsetsInches()[index];
+
+		this.aimToJunction(x, y, positionOffset, heightOffset);
+	}
+
 	public void aimToJunction(int x, int y){
 		this.aimToJunction(x, y, new Vector2d(0, 0));
+	}
+
+	public void aimToJunction(int x, int y, double heightOffset){
+		this.aimToJunction(x, y, new Vector2d(0, 0), heightOffset);
 	}
 
 	/**
@@ -182,14 +209,20 @@ public abstract class AbeOpMode extends LinearOpMode {
 	 *
 	 * @param raw raw field coordinates
 	 */
-	public void aimToJunctionRaw(Vector2d raw, Vector2d offset){
+	public void aimToJunctionRaw(Vector2d raw, Vector2d offset, double heightOffset){
 		int[] snapped = JunctionHelper.rawToSnapped(raw.getX(), raw.getY());
 
-		this.aimToJunction(snapped[0], snapped[1], offset);
+		this.aimToJunction(snapped[0], snapped[1], offset, heightOffset);
 	}
 
 	public void aimToJunctionRaw(Vector2d raw){
-		this.aimToJunctionRaw(raw, new Vector2d(0, 0));
+		int[] snapped = JunctionHelper.rawToSnapped(raw.getX(), raw.getY());
+
+		this.aimToJunction(snapped[0], snapped[1]);
+	}
+
+	public void aimToJunctionRaw(Vector2d raw, double heightOffset){
+		this.aimToJunctionRaw(raw, new Vector2d(0, 0), heightOffset);
 	}
 
 	/**
@@ -245,5 +278,29 @@ public abstract class AbeOpMode extends LinearOpMode {
 		);
 
 		setPoseEstimate(corrected);
+	}
+
+	public List<LynxModule> getHubs(){
+		return hardwareMap.getAll(LynxModule.class);
+	}
+
+	public LynxModule getControlHub(){
+		return getHubs().get(0);
+	}
+
+	public LynxModule getExpansionHub(){
+		return getHubs().get(1);
+	}
+
+	public void setManualBulkReads(){
+		getExpansionHub().setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+	}
+
+	public void setAutoBulkReads(){
+		getExpansionHub().setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+	}
+
+	public void clearBulkCache(){
+		getExpansionHub().clearBulkCache();
 	}
 }

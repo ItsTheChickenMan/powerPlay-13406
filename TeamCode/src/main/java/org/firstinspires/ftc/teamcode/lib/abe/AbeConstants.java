@@ -9,15 +9,15 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
  *
  * Generally speaking, configurable constants should only be in here, and should only be used in classes in the abe package.
  */
-
 // make configurable from dashboard
 @Config
 public class AbeConstants {
 	// general... //
 
 	// drive related... //
-	public static PIDCoefficients AIM_HEADING_PID = new PIDCoefficients(6.2, 0, 0.2);
+	public static PIDCoefficients AIM_HEADING_PID = new PIDCoefficients(5.7, 0, 0.2);
 	public static double MAX_ROTATION_POWER = 0.6;
+	public static double AIM_EXTRA_KICK = 0.005;
 
 	// general arm related... //
 	public static double ARM_X_OFFSET_INCHES = -5; // offset along robot's forward axis
@@ -58,14 +58,17 @@ public class AbeConstants {
 	public static double SLIDES_SPOOL_CIRCUMFERENCE_INCHES = 4.409;
 
 	// wrist related... //
+	// TODO: some of these might be more fit for AbeOpMode?
 	public static double WRIST_MAX_RANGE_DEGREES = 245;
 	public static double WRIST_ZERO_ANGLE_DEGREES = -60.0;
-	public static double WRIST_OFFSET_INCHES = 4.0; // 5.8
-	public static double WRIST_DEFAULT_ANGLE_DEGREES = -80.0;
-	public static double WRIST_UP_ANGLE_DEGREES = 62.0;
-	public static double WRIST_HIGH_ANGLE_DEGREES = 55;
-	public static double WRIST_DROP_ANGLE_DEGREES = 35.0;
+	public static double WRIST_OFFSET_INCHES = 5.5; // 5.8, 3.5
+	public static double WRIST_DEFAULT_LOW_ANGLE_DEGREES = -80.0;
+	public static double WRIST_DEFAULT_HIGH_ANGLE_DEGREES = 90.0;
+	public static double[] WRIST_UP_ANGLES_DEGREES = new double[]{45.0, 45.0, 45.0, 45.0};
+	public static double WRIST_HIGH_ANGLE_DEGREES = 70;
+	public static double[] WRIST_DROP_ANGLES_DEGREES = new double[]{0.0, 0.0, 0.0, 0.0};
 	public static double WRIST_GRAB_ANGLE_DEGREES = -10.0;
+	public static double WRIST_LOW_GRAB_ANGLE_DEGREES = -90.0;
 
 	// claw related... //
 	public static double CLAW_MAX_RANGE_DEGREES = 300;

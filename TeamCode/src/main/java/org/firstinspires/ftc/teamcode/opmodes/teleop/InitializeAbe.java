@@ -14,6 +14,8 @@ public class InitializeAbe extends AbeOpMode {
 
 		GlobalStorage.clearGlobalStorage();
 
+		GlobalStorage.globalTelemetry = telemetry;
+
 		waitForStart();
 
 		this.abe.arm.setElbowAngleRadians(AbeConstants.ELBOW_INITIALIZATION_ANGLE_RADIANS);

@@ -29,7 +29,10 @@ public class LocalizationTest extends LinearOpMode {
 
         waitForStart();
 
-        while (!isStopRequested()) {
+        ElapsedTime timer = new ElapsedTime();
+        int updates = 0;
+
+        while (!gamepad2.a && !isStopRequested()) {
             Pose2d poseEstimate = drive.getPoseEstimate();
 
             Vector2d driveVector = new Vector2d(-gamepad1.left_stick_y, -gamepad1.left_stick_x);
@@ -49,6 +52,16 @@ public class LocalizationTest extends LinearOpMode {
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
             telemetry.addData("heading", Math.toDegrees(poseEstimate.getHeading()));
+            telemetry.update();
+
+            updates++;
+        }
+
+        double duration = timer.seconds();
+
+        while(!isStopRequested()){
+            telemetry.addData("ms / loop", (duration / updates) * 1000);
+            telemetry.addData("loops / second", (updates / duration));
             telemetry.update();
         }
     }

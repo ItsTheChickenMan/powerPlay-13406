@@ -39,7 +39,9 @@ public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
 	public static final int LEFT = 1;
 	public static final int RIGHT = -1;
 
-	public static double X_MULTIPLIER = StandardTrackingWheelLocalizer.X_MULTIPLIER;
+	public static int WHICH_WHEEL = RIGHT;
+
+	public static double X_MULTIPLIER = WHICH_WHEEL == RIGHT ? StandardTrackingWheelLocalizer.RIGHT_X_MULTIPLIER : StandardTrackingWheelLocalizer.LEFT_X_MULTIPLIER;
 	//public static double X_MULTIPLIER = 71.0 / 71.493;
 	public static double Y_MULTIPLIER = StandardTrackingWheelLocalizer.Y_MULTIPLIER;
 	//public static double Y_MULTIPLIER = 71.0 / 71.339;
@@ -48,9 +50,7 @@ public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
 	public static double WHEEL_RADIUS = StandardTrackingWheelLocalizer.WHEEL_RADIUS; // in
 	public static double GEAR_RATIO = StandardTrackingWheelLocalizer.GEAR_RATIO; // output (wheel) speed / input (encoder) speed
 
-	public static int WHICH_WHEEL = RIGHT;
-
-	public static double PARALLEL_X = 2 + (9.0/16.0); // X is the up and down direction
+	public static double PARALLEL_X = StandardTrackingWheelLocalizer.LATERAL_WHEEL_OFFSET; // X is the up and down direction
 	public static double PARALLEL_Y = WHICH_WHEEL*StandardTrackingWheelLocalizer.LATERAL_DISTANCE / 2.0; // Y is the strafe direction
 
 	public static double PERPENDICULAR_X = StandardTrackingWheelLocalizer.FORWARD_OFFSET;

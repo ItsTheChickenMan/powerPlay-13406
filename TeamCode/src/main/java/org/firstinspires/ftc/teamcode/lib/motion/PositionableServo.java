@@ -30,6 +30,7 @@ public class PositionableServo {
 	 */
 	public PositionableServo(Servo servo, double maxRange){
 		this.servo = servo;
+
 		this.maxRange = maxRange;
 		this.zeroAngleRadians = 0.0;
 	}

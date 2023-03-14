@@ -28,7 +28,9 @@ public class AbeArm {
 	private double elbowAngleRadians;
 	private double slidesLengthInches;
 
+	private double aimWristAngleRadians;
 	private double desiredWristAngleRadians;
+	private double wristAngleCorrectionRadians = 0.0;
 
 	private double slidesRestingExtensionInches;
 
@@ -53,7 +55,7 @@ public class AbeArm {
 		this.elbowMotor = elbowMotor;
 		this.hand = hand;
 
-		this.slidesRestingExtensionInches = this.slides.getBaseExtension() + 0.5;
+		this.slidesRestingExtensionInches = this.slides.getBaseExtension() + 1.0;
 
 		this.sagCorrectionRegressions = new PolynomialRegression[4];
 
@@ -149,8 +151,8 @@ public class AbeArm {
 	 * @return true if elbow is steady (within a certain error and speed threshold)
 	 */
 	public boolean isElbowSteady(double maxErrorRadians, double maxDerivativeRadians){
-		GlobalStorage.globalTelemetry.addData("elbow last error", Math.toDegrees(this.elbowLastErrorRadians));
-		GlobalStorage.globalTelemetry.addData("elbow last derivative", Math.toDegrees(this.elbowLastDerivativeRadians));
+		// GlobalStorage.globalTelemetry.addData("elbow last error", Math.toDegrees(this.elbowLastErrorRadians));
+		// GlobalStorage.globalTelemetry.addData("elbow last derivative", Math.toDegrees(this.elbowLastDerivativeRadians));
 
 		return (this.elbowLastErrorRadians <= maxErrorRadians) && (this.elbowLastDerivativeRadians <= maxDerivativeRadians);
 	}
@@ -406,7 +408,7 @@ public class AbeArm {
 		int highIndex = JunctionHelper.getJunctionIndex(highLevel);
 
 		// check if we require interpolation
-		if(MathUtils.approximatelyEqual(highHeight, height, 0.5)){
+		if(MathUtils.approximatelyEqual(highHeight, height, 0.25)){
 			// no interpolation needed
 
 			// get regression
@@ -478,8 +480,13 @@ public class AbeArm {
 	 *
 	 * @param x x coordinate in arm space
 	 * @param y y coordinate in arm space
+	 * @param aimWristAngleRadians the desired angle of the wrist when the arm is fully aimed.  this angle is not actually assigned to the hand, but used to determine the arm position required to get the end of the claw to the desired point when the wrist is at this angle.
 	 */
-	public void aimAt(double x, double y){
+	public void aimAt(double x, double y, double aimWristAngleRadians){
+		// adjust x & y based on wrist angle
+		x -= Math.cos(aimWristAngleRadians)*AbeConstants.WRIST_OFFSET_INCHES;
+		y -= Math.sin(aimWristAngleRadians)*AbeConstants.WRIST_OFFSET_INCHES;
+
 		// calculate elbow angle + slides length
 		double elbowAngle = this.calculateElbowAngleRadians(x, y);
 		double slidesLength = this.calculateSlidesLengthInches(x, y);
@@ -489,19 +496,41 @@ public class AbeArm {
 
 		elbowAngle += sagCorrection;
 
+		this.wristAngleCorrectionRadians = -sagCorrection;
+
 		// save values
 		this.elbowAngleRadians = elbowAngle;
 		this.slidesLengthInches = slidesLength;
 
-		//GlobalStorage.globalTelemetry.addData("arm x", x);
-		//GlobalStorage.globalTelemetry.addData("arm y", y);
+		// GlobalStorage.globalTelemetry.addData("arm x", x);
+		// GlobalStorage.globalTelemetry.addData("arm y", y);
+	}
+
+	public void aimAt(double x, double y){
+		this.aimAt(x, y, this.aimWristAngleRadians);
+	}
+
+	public double getAimWristAngleDegrees(){
+		return Math.toDegrees(this.getAimWristAngleRadians());
+	}
+
+	public double getAimWristAngleRadians(){
+		return this.aimWristAngleRadians;
+	}
+
+	public void setAimWristAngleDegrees(double aimWristAngleDegrees){
+		this.setAimWristAngleRadians(Math.toRadians(aimWristAngleDegrees));
+	}
+
+	public void setAimWristAngleRadians(double aimWristAngleRadians){
+		this.aimWristAngleRadians = aimWristAngleRadians;
 	}
 
 	public void updateHand(){
 		// do hand
-		double actualWristAngle = this.desiredWristAngleRadians - this.elbowMotor.getAngleRadians();
+		double actualWristAngle = (this.desiredWristAngleRadians + this.wristAngleCorrectionRadians) - this.elbowMotor.getAngleRadians();
 
-		this.hand.setPitchRadians(actualWristAngle);
+		if(!Double.isNaN(actualWristAngle)) this.hand.setPitchRadians(actualWristAngle);
 	}
 
 	public void updateSteadyState(){
@@ -542,10 +571,16 @@ public class AbeArm {
 		// aim slides, if told to
 		if(doSlides){
 			this.slides.extendTo(this.slidesLengthInches, AbeConstants.SLIDES_VELOCITY_INCHES);
+
+			// GlobalStorage.globalTelemetry.addData("desired length", this.slidesLengthInches);
 		} else{
 			// go to default position
 			this.slides.extendTo(this.slidesRestingExtensionInches, AbeConstants.SLIDES_VELOCITY_INCHES);
+
+			// GlobalStorage.globalTelemetry.addData("desired length", this.slidesRestingExtensionInches);
 		}
+
+		// GlobalStorage.globalTelemetry.addData("actual length", this.slides.getExtension());
 
 		this.updateHand();
 

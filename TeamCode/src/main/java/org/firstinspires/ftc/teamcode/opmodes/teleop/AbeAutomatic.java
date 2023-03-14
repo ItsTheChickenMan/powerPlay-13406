@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.lib.utils.GlobalStorage;
 @TeleOp(group = "Comp")
 public class AbeAutomatic extends AbeTeleOp {
 	// starting pose used if auto isn't run
-	public static Pose2d STARTING_POSE = new Pose2d(9.125, 34.75, 0);
+	public static Pose2d STARTING_POSE = new Pose2d(9.625, 34.75, 0);
 
 	@Override
 	public void runOpMode() throws InterruptedException {

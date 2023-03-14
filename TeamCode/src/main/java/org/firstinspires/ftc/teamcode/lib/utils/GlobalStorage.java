@@ -29,7 +29,7 @@ public class GlobalStorage {
 
     // offset to use for auto junction
     // manually set by the driver by eyeballing it before auto
-    // not the best option, but not the worst either...just can't forget to do it (but if I do it defaults to 0, 0 so it should still be somewhat safe)
+    // not the best option, but not the worst either...just can't forget to do it
     public static Vector2d autoJunctionOffset;
 
     public static void clearGlobalStorage(){
@@ -39,7 +39,7 @@ public class GlobalStorage {
         GlobalStorage.currentSlidesExtension = AbeConstants.SLIDES_BASE_LENGTH_INCHES;
         GlobalStorage.didAuto = false;
         // default to -0.4 to account for slight drift
-        GlobalStorage.autoJunctionOffset = new Vector2d(0, -0.4);
+        GlobalStorage.autoJunctionOffset = new Vector2d(0, -0.0);
     }
 
     public static void logGlobalStorage(Telemetry telemetry){

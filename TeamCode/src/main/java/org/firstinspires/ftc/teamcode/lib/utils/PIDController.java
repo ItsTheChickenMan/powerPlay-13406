@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.lib.utils;
 
+import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.apache.commons.math3.analysis.integration.IterativeLegendreGaussIntegrator;
 
 /**
  * @brief super basic and quick PID controller implementation
@@ -26,6 +29,10 @@ public class PIDController {
 		this(p, i, d, new ElapsedTime());
 	}
 
+	public PIDController(PIDCoefficients coefficients){
+		this(coefficients.kP, coefficients.kI, coefficients.kD);
+	}
+
 	public PIDController(double p, double i, double d, ElapsedTime timer){
 		this.p_const = p;
 		this.i_const = i;
@@ -36,23 +43,27 @@ public class PIDController {
 		this.lastTime = this.timer.seconds();
 	}
 
-	public void setTarget(double target){
+	public PIDController(PIDCoefficients coefficients, ElapsedTime timer){
+		this(coefficients.kP, coefficients.kI, coefficients.kD, timer);
+	}
+
+	public void setTargetPosition(double target){
 		this.target = target;
 	}
 
-	public double getError(){
+	public double getLastError(){
 		return this.target - this.measured;
 	}
 
-	public double getDerivative(){
-			return (this.getError() - this.lastError) / this.delta;
+	public double getLastDerivative(){
+			return (this.getLastError() - this.lastError) / this.delta;
 	}
 
 	public double getIntegral(){
 		return this.accumulativeError;
 	}
 
-	public double getOutput(double measured){
+	public double update(double measured){
 		// get time since last call
 		double time = this.timer.seconds();
 		this.delta = time - this.lastTime;
@@ -61,13 +72,13 @@ public class PIDController {
 		// update measured
 		this.measured = measured;
 
-		double error = this.getError();
+		double error = this.getLastError();
 
 		if(Double.isNaN(error)) return 0.0;
 
 		double p = error;
 
-		double d = (measured - this.lastError) / this.delta;
+		double d = (error - this.lastError) / this.delta;
 
 		this.lastError = error;
 
